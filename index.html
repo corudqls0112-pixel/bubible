@@ -128,16 +128,26 @@ async function loadQuestions() {
 }
 
 // 텍스트 파일 파싱: 문제, 1~4보기, 답
-function parseQuestions(text){
-  const blocks = text.trim().split(/\n\n+/);
-  return blocks.map(block=>{
-    const lines = block.split("\n").map(l=>l.trim()).filter(Boolean);
-    return {
-      question: lines[0],
-      options: lines.slice(1,5).map(opt=>opt.replace(/^\d번:\s*/,'')),
-      answer: parseInt(lines[5].replace(/답:\s*/,''))-1 // 인덱스
-    };
+function parseQuestions(text) {
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const questions = [];
+  let current = {};
+
+  lines.forEach(line => {
+    if(line.startsWith("답:")) {
+      current.answer = parseInt(line.replace("답:", "").trim()) - 1; // 0-based
+      questions.push(current);
+      current = {};
+    } else if(!current.question) {
+      current.question = line;
+    } else {
+      if(!current.options) current.options = [];
+      // 보기에서 "1번: " 제거
+      current.options.push(line.replace(/^\d번:\s*/, ""));
+    }
   });
+
+  return questions;
 }
 
 function showQuestion(){
