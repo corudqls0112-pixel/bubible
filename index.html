@@ -4,7 +4,26 @@
 <meta charset="UTF-8">
 <title>백석대 성경고사</title>
 <style>
-body {
+/* 기존 스타일 코드 ... */
+
+.result-card {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 10px 0;
+  text-align: left;
+  background-color: #f9f9f9;
+}
+.result-card.correct {
+  border-left: 5px solid #28a745;
+}
+.result-card.incorrect {
+  border-left: 5px solid #dc3545;
+}
+.result-card p {
+  margin: 4px 0;
+}
+ body {
   font-family: 'Noto Sans KR', sans-serif;
   background-color: #e6f0ff;
   text-align: center;
@@ -202,21 +221,26 @@ function prevQuestion(){
   }
 }
 
-// 제출 버튼
 function showMockResult(){
   clearInterval(timer);
   let score = 0;
-  let resultText = `<h3>결과</h3>`;
+  let resultHTML = `<h3>결과</h3>`;
+  
   questions.forEach((q,i)=>{
     const user = answers[i];
-    if(user === q.answer){
-      score++;
-      resultText += `<p>${i+1}번 ✅ 정답 - 선택: ${q.options[user]}</p>`;
-    } else {
-      resultText += `<p>${i+1}번 ❌ 오답 - 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[q.answer]}</p>`;
+    const isCorrect = user === q.answer;
+    if(isCorrect) score++;
+    
+    resultHTML += `<div class="result-card ${isCorrect?"correct":"incorrect"}">`;
+    resultHTML += `<p><strong>${i+1}번 문제:</strong> ${q.question}</p>`;
+    resultHTML += `<p>선택: ${user!==undefined?q.options[user]:"-"} ${isCorrect?"✅":"❌"}</p>`;
+    if(!isCorrect){
+      resultHTML += `<p>정답: ${q.options[q.answer]}</p>`;
     }
+    resultHTML += `</div>`;
   });
-  document.getElementById("question").innerHTML = `<h2>총점: ${Math.round(score/questions.length*100)}점 (${score}/${questions.length})</h2>`+resultText;
+
+  document.getElementById("question").innerHTML = `<h2>총점: ${score} / ${questions.length} (${Math.round(score/questions.length*100)}점)</h2>` + resultHTML;
   document.getElementById("options").innerHTML = "";
   document.getElementById("next-btn").style.display = "none";
   document.getElementById("prev-btn").style.display = "none";
