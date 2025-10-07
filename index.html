@@ -180,34 +180,43 @@ function selectAnswer(i){
     } else {
       document.getElementById("result").innerText = `❌ 오답입니다. 정답: ${q.options[q.answer]}`;
     }
-  } else {
-    answers[currentIndex] = i;
+  } else { // 모의고사
+    answers[currentIndex] = i; // 답 저장
+    document.getElementById("result").innerText = `선택: ${q.options[i]}`; // 선택 표시
   }
 }
 
+// 다음 버튼 (모의고사와 연습문제 공용)
 function nextQuestion(){
-  if(currentIndex<questions.length-1){
+  if(currentIndex < questions.length-1){
     currentIndex++;
     showQuestion();
   }
 }
+
+// 이전 버튼 (모의고사 전용)
 function prevQuestion(){
-  if(currentIndex>0){
+  if(currentIndex > 0){
     currentIndex--;
     showQuestion();
   }
 }
 
+// 제출 버튼
 function showMockResult(){
   clearInterval(timer);
   let score = 0;
   let resultText = `<h3>결과</h3>`;
   questions.forEach((q,i)=>{
     const user = answers[i];
-    if(user === q.answer) score++;
-    else resultText += `<p>❌ ${i+1}번 오답 - 정답: ${q.options[q.answer]}</p>`;
+    if(user === q.answer){
+      score++;
+      resultText += `<p>${i+1}번 ✅ 정답 - 선택: ${q.options[user]}</p>`;
+    } else {
+      resultText += `<p>${i+1}번 ❌ 오답 - 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[q.answer]}</p>`;
+    }
   });
-  document.getElementById("question").innerHTML = `<h2>총점: ${Math.round(score/questions.length*100)}점</h2>`+resultText;
+  document.getElementById("question").innerHTML = `<h2>총점: ${Math.round(score/questions.length*100)}점 (${score}/${questions.length})</h2>`+resultText;
   document.getElementById("options").innerHTML = "";
   document.getElementById("next-btn").style.display = "none";
   document.getElementById("prev-btn").style.display = "none";
