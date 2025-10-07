@@ -6,13 +6,13 @@
   <style>
     body {
       font-family: 'Noto Sans KR', sans-serif;
-      background-color: #e6f0ff; /* 파란색 계열 */
+      background-color: #e6f0ff;
       text-align: center;
       margin: 0;
       padding: 20px;
     }
     h1 {
-      color: #002366; /* 백석대 느낌 짙은 파랑 */
+      color: #002366;
       font-size: 2em;
       margin-bottom: 10px;
     }
@@ -46,6 +46,10 @@
       font-size: 1.2em;
       color: #d9534f;
       font-weight: bold;
+    }
+    #result p {
+      text-align: left;
+      margin: 5px 0;
     }
   </style>
 </head>
@@ -103,8 +107,8 @@
       await loadQuestions();
 
       if (mode === "mock") {
-        questions = shuffleArray(questions).slice(0, 50); // 50문제 랜덤
-        startTimer(3000); // 50분 = 3000초
+        questions = shuffle([...questions]).slice(0,50);
+        startTimer(3000); // 50분
         document.getElementById("prev-btn").style.display = "inline";
         document.getElementById("submit-btn").style.display = "inline";
       } else {
@@ -117,8 +121,8 @@
     }
 
     async function loadQuestions() {
-      const files = [1,2,3,4,5,6,7,8,9,10];
-      const loaded = [];
+      const files = [1,2,3,4,5,6,7,8,9,10]; // txt 파일 이름
+      let loaded = [];
       for (const num of files) {
         try {
           const res = await fetch(`questions/${num}.txt`);
@@ -128,35 +132,26 @@
           }
         } catch (e) { console.log(e); }
       }
-      questions = shuffleQuestionsOnly(loaded); // 문제 순서만 랜덤
-    }
-
-    function shuffleQuestionsOnly(arr) {
-      const copy = [...arr];
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      return copy;
+      questions = shuffle([...loaded]); // 문제 순서 랜덤
     }
 
     function parseMultipleQuestions(text) {
+      // 빈줄 기준으로 문제 블록 구분
       const blocks = text.split(/\n\s*\n/);
       return blocks.map(block => {
-        const lines = block.trim().split("\n").map(l => l.trim());
-        const q = lines[0];
-        const opts = lines.slice(1, 5);
-        const answerLine = lines.find(line => line.startsWith("정답:"));
-        const explanationLine = lines.find(line => line.startsWith("해설:"));
-        const answer = answerLine ? answerLine.replace("정답:", "").trim() : "";
-        const explanation = explanationLine ? explanationLine.replace("해설:", "").trim() : "";
-        return { question: q, options: opts, answer, explanation };
-      }).filter(q => q.question);
+        const lines = block.trim().split("\n").filter(l=>l.trim()!=='');
+        if (lines.length < 6) return null;
+        const question = lines[0];
+        const options = lines.slice(1,5);
+        const answer = lines[5].trim();
+        const explanation = lines.slice(6).join("<br>"); // 여러줄 해설도 가능
+        return {question, options, answer, explanation};
+      }).filter(q => q);
     }
 
     function showQuestion() {
       const q = questions[currentIndex];
-      document.getElementById("question").innerText = `(${currentIndex + 1}) ${q.question}`;
+      document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
       const optionsDiv = document.getElementById("options");
       optionsDiv.innerHTML = "";
       q.options.forEach((opt, i) => {
@@ -165,36 +160,37 @@
         btn.onclick = () => selectAnswer(i);
         optionsDiv.appendChild(btn);
       });
-      document.getElementById("result").innerText = "";
+      document.getElementById("result").innerHTML = "";
     }
 
     function selectAnswer(i) {
       const q = questions[currentIndex];
-      const correctIndex = parseInt(q.answer) - 1; // "정답: 2" → 1
-      if (mode === "practice") {
-        if (i === correctIndex) {
-          document.getElementById("result").innerHTML = "✅ 정답입니다!<br>" + (q.explanation || "");
+      const correctIndex = parseInt(q.answer)-1; // 1번,2번 -> 0,1
+      if (mode==="practice") {
+        if(i===correctIndex){
+          document.getElementById("result").innerHTML = "✅ 정답입니다!<br>"+q.explanation;
         } else {
-          document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${q.answer}<br>${q.explanation || ""}`;
+          document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${q.answer}<br>${q.explanation}`;
         }
-      } else {
-        answers[currentIndex] = i;
+      } else { 
+        answers[currentIndex] = i; 
+        // 클릭하면 바로 다음 문제
+        if(currentIndex < questions.length-1){
+          currentIndex++;
+          showQuestion();
+        }
       }
     }
 
     function nextQuestion() {
-      if (currentIndex < questions.length - 1) {
+      if(currentIndex<questions.length-1){
         currentIndex++;
         showQuestion();
-      } else {
-        if (mode === "practice") {
-          document.getElementById("result").innerText = "연습문제가 모두 끝났습니다.";
-        }
       }
     }
 
     function prevQuestion() {
-      if (currentIndex > 0) {
+      if(currentIndex>0){
         currentIndex--;
         showQuestion();
       }
@@ -204,12 +200,12 @@
       clearInterval(timer);
       score = 0;
       let resultText = "<h3>결과</h3>";
-      questions.forEach((q, i) => {
-        const correctIndex = parseInt(q.answer) - 1;
-        if (answers[i] === correctIndex) score++;
+      questions.forEach((q,i)=>{
+        const correctIndex = parseInt(q.answer)-1;
+        if(answers[i]===correctIndex) score++;
         else resultText += `<p>❌ ${i+1}번 오답 - 정답: ${q.answer}, ${q.explanation}</p>`;
       });
-      resultText = `<h2>총점: ${Math.round(score / questions.length * 100)}점</h2>` + resultText;
+      resultText = `<h2>총점: ${score}/${questions.length} (${Math.round(score/questions.length*100)}점)</h2>` + resultText;
       document.getElementById("question").innerHTML = resultText;
       document.getElementById("options").innerHTML = "";
       document.getElementById("next-btn").style.display = "none";
@@ -220,20 +216,18 @@
 
     function startTimer(seconds) {
       timeLeft = seconds;
-      timer = setInterval(() => {
-        const min = Math.floor(timeLeft / 60);
-        const sec = timeLeft % 60;
-        document.getElementById("timer").innerText = `⏰ 남은 시간: ${min}분 ${sec < 10 ? "0"+sec : sec}초`;
-        if (timeLeft-- <= 0) {
+      timer = setInterval(()=>{
+        const min = Math.floor(timeLeft/60);
+        const sec = timeLeft%60;
+        document.getElementById("timer").innerText = `⏰ 남은 시간: ${min}분 ${sec<10?'0'+sec:sec}초`;
+        if(timeLeft--<=0){
           clearInterval(timer);
           showMockResult();
         }
-      }, 1000);
+      },1000);
     }
 
-    function shuffleArray(arr) {
-      return arr.sort(() => Math.random() - 0.5);
-    }
+    function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
   </script>
 </body>
 </html>
