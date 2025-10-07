@@ -2,279 +2,156 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>성경고사 앱</title>
+  <title>백석대졸업고사 대비</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Pretendard', sans-serif;
-      background: #f9fafb;
-      color: #333;
+      text-align: center;
+      background: #f3f7fa;
       margin: 0;
       padding: 0;
     }
-    header {
-      background: #2563eb;
+    h1 {
+      background: #0055aa;
       color: white;
-      text-align: center;
       padding: 1rem;
-      font-size: 1.5rem;
-      font-weight: bold;
+      margin: 0 0 1rem;
     }
-    nav {
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      background: #1e3a8a;
-      padding: 0.5rem;
-    }
-    nav button {
-      background: #3b82f6;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    nav button:hover {
-      background: #60a5fa;
-    }
-    .container {
-      max-width: 800px;
-      margin: 1.5rem auto;
+    #quiz-container {
       background: white;
-      padding: 1rem 1.5rem;
-      border-radius: 10px;
+      border-radius: 16px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem;
     }
-    .question { margin-bottom: 1rem; }
-    .option {
-      margin: 0.25rem 0;
-      padding: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .option:hover { background: #f0f9ff; }
-    .correct { background: #bbf7d0; }
-    .wrong { background: #fecaca; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      text-align: center;
-      padding: 0.5rem;
-    }
-    th {
-      background: #f1f5f9;
-    }
-    .hidden { display: none; }
-    .btn {
-      margin-top: 1rem;
-      padding: 0.6rem 1rem;
-      background: #2563eb;
-      color: white;
+    button {
+      margin: 10px;
+      padding: 10px 20px;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
+      background: #0055aa;
+      color: white;
+      font-size: 16px;
       cursor: pointer;
     }
-    .btn:hover { background: #1d4ed8; }
+    button:hover {
+      background: #004080;
+    }
+    #chart-container {
+      width: 80%;
+      max-width: 500px;
+      margin: 20px auto;
+    }
   </style>
 </head>
 <body>
-  <header>📖 성경고사 앱</header>
+  <h1>📖 백석대 졸업고사 대비</h1>
 
-  <nav>
-    <button onclick="showPage('practice')">연습문제</button>
-    <button onclick="showPage('mock')">모의고사</button>
-    <button onclick="showPage('manage')">문제 관리</button>
-    <button onclick="showPage('stats')">통계</button>
-  </nav>
+  <div id="quiz-container">
+    <p id="question">문제를 불러오는 중...</p>
+    <div id="choices"></div>
+    <button id="nextBtn" style="display:none;">다음 문제</button>
+  </div>
 
-  <div class="container" id="content"></div>
+  <div id="chart-container" style="display:none;">
+    <canvas id="resultChart"></canvas>
+  </div>
 
   <script>
-    const STORAGE_KEY = 'bibleQuestions';
-    const RESULT_KEY = 'examResults';
-    const QUESTION_URL = 'questions.json'; // ✅ GitHub에서 직접 관리할 JSON 파일
+    const totalQuestions = 5; // 한 세트에서 출제할 문제 수
+    let currentQuestion = 0;
+    let score = 0;
+    let questions = [];
 
     async function loadQuestions() {
-      // 1️⃣ GitHub pages에서 questions.json을 불러오기 시도
-      try {
-        const res = await fetch(QUESTION_URL);
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          return data;
-        }
-      } catch (e) {
-        console.warn("questions.json 불러오기 실패, 로컬 데이터 사용");
+      const files = [1corinthians.txt]; // 업로드한 문제 txt 파일 이름
+      const loaded = [];
+      for (const num of files) {
+        try {
+          const res = await fetch(`questions/${num}.txt`);
+          if (res.ok) {
+            const text = await res.text();
+            loaded.push(parseQuestion(text));
+          }
+        } catch {}
       }
-
-      // 2️⃣ 로컬 스토리지 백업
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      questions = shuffle(loaded).slice(0, totalQuestions);
+      showQuestion();
     }
 
-    function saveQuestions(qs) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(qs));
+    function parseQuestion(text) {
+      // txt 파일 형식 예시:
+      // 문제: 예수님이 태어난 곳은 어디인가요?
+      // 1) 나사렛
+      // 2) 베들레헴
+      // 3) 예루살렘
+      // 4) 갈릴리
+      // 정답: 2
+      const lines = text.trim().split("\n");
+      const q = lines[0].replace("문제:", "").trim();
+      const options = lines.slice(1,5).map(l => l.trim());
+      const answer = parseInt(lines[5].replace("정답:", "").trim());
+      return { q, options, answer };
     }
 
-    function showPage(page) {
-      const container = document.getElementById('content');
-      container.innerHTML = '';
-
-      if (page === 'practice') renderPractice();
-      else if (page === 'mock') renderMock();
-      else if (page === 'manage') renderManage();
-      else if (page === 'stats') renderStats();
-    }
-
-    // ✅ 연습문제
-    async function renderPractice() {
-      const container = document.getElementById('content');
-      const questions = await loadQuestions();
-      if (!questions.length) return container.innerHTML = "<p>문제를 추가해주세요.</p>";
-
-      container.innerHTML = '<h2>📝 연습문제</h2>';
-      questions.forEach((q, idx) => {
-        const div = document.createElement('div');
-        div.className = 'question';
-        div.innerHTML = `<p><b>${idx + 1}. ${q.q}</b></p>`;
-        q.options.forEach((opt, i) => {
-          const btn = document.createElement('div');
-          btn.className = 'option';
-          btn.textContent = opt;
-          btn.onclick = () => {
-            if (i === q.answer) btn.classList.add('correct');
-            else btn.classList.add('wrong');
-          };
-          div.appendChild(btn);
-        });
-        container.appendChild(div);
+    function showQuestion() {
+      if (currentQuestion >= questions.length) return showResult();
+      const qData = questions[currentQuestion];
+      document.getElementById("question").innerText = `${currentQuestion+1}. ${qData.q}`;
+      const choiceDiv = document.getElementById("choices");
+      choiceDiv.innerHTML = "";
+      qData.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.innerText = opt;
+        btn.onclick = () => checkAnswer(idx+1);
+        choiceDiv.appendChild(btn);
       });
     }
 
-    // ✅ 모의고사 (랜덤 문제)
-    async function renderMock() {
-      const container = document.getElementById('content');
-      let questions = await loadQuestions();
-      if (!questions.length) return container.innerHTML = "<p>문제가 없습니다.</p>";
-
-      // 🔀 문제 순서 랜덤화
-      questions = questions.sort(() => Math.random() - 0.5);
-      let score = 0, current = 0;
-
-      const renderQuestion = () => {
-        container.innerHTML = `<h2>📚 모의고사 (${current + 1}/${questions.length})</h2>`;
-        const q = questions[current];
-        const div = document.createElement('div');
-        div.innerHTML = `<p><b>${q.q}</b></p>`;
-        q.options.forEach((opt, i) => {
-          const btn = document.createElement('div');
-          btn.className = 'option';
-          btn.textContent = opt;
-          btn.onclick = () => {
-            if (i === q.answer) score++;
-            current++;
-            if (current < questions.length) renderQuestion();
-            else showResult();
-          };
-          div.appendChild(btn);
-        });
-        container.appendChild(div);
-      };
-
-      const showResult = () => {
-        const percent = (score / questions.length * 100).toFixed(1);
-        container.innerHTML = `<h2>결과: ${score}/${questions.length}</h2>
-          <p>점수: ${percent}%</p>
-          <button class="btn" onclick="showPage('stats')">통계 보기</button>`;
-        saveResult(score, questions.length);
-      };
-
-      renderQuestion();
+    function checkAnswer(selected) {
+      const qData = questions[currentQuestion];
+      if (selected === qData.answer) score++;
+      currentQuestion++;
+      document.getElementById("choices").innerHTML = "";
+      document.getElementById("nextBtn").style.display = "block";
     }
 
-    // ✅ 문제 관리
-    async function renderManage() {
-      const container = document.getElementById('content');
-      const questions = await loadQuestions();
-      container.innerHTML = `
-        <h2>⚙ 문제 관리</h2>
-        <div>
-          <input id="qText" placeholder="문제" style="width:100%;padding:0.5rem;margin-bottom:0.5rem;">
-          <input id="opt1" placeholder="보기 1" style="width:48%;margin-right:2%;">
-          <input id="opt2" placeholder="보기 2" style="width:48%;">
-          <input id="opt3" placeholder="보기 3" style="width:48%;margin-right:2%;">
-          <input id="opt4" placeholder="보기 4" style="width:48%;">
-          <input id="ans" type="number" min="1" max="4" placeholder="정답 번호(1~4)" style="width:100%;margin-top:0.5rem;">
-          <button class="btn" onclick="addQuestion()">문제 추가</button>
-        </div>
-        <hr>
-        <h3>현재 등록된 문제 (${questions.length}개)</h3>
-        <ul>${questions.map((q,i)=>`<li>${i+1}. ${q.q}</li>`).join('')}</ul>
-        <p style="color:gray;font-size:0.9rem;">※ GitHub에 올린 questions.json 파일도 수정 가능</p>
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      document.getElementById("nextBtn").style.display = "none";
+      showQuestion();
+    });
+
+    function showResult() {
+      document.getElementById("quiz-container").innerHTML = `
+        <h2>결과</h2>
+        <p>총 ${questions.length}문제 중 ${score}문제 정답 ✅</p>
       `;
+      document.getElementById("chart-container").style.display = "block";
+      renderChart(score, questions.length - score);
     }
 
-    function addQuestion() {
-      const q = document.getElementById('qText').value;
-      const opts = [opt1.value, opt2.value, opt3.value, opt4.value];
-      const ans = parseInt(document.getElementById('ans').value) - 1;
-      if (!q || opts.some(o=>!o) || isNaN(ans)) return alert("모든 칸을 채워주세요!");
-
-      const qs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      qs.push({ q, options: opts, answer: ans });
-      saveQuestions(qs);
-      alert("문제가 추가되었습니다!");
-      showPage('manage');
-    }
-
-    // ✅ 통계 (차트 포함)
-    function renderStats() {
-      const records = JSON.parse(localStorage.getItem(RESULT_KEY) || '[]');
-      const container = document.getElementById('content');
-      container.innerHTML = '<h2>📊 통계</h2>';
-
-      if (records.length === 0) {
-        container.innerHTML += '<p>아직 시험 기록이 없습니다.</p>';
-        return;
-      }
-
-      const avg = (records.reduce((a,b)=>a+b.percentage,0)/records.length).toFixed(1);
-      container.innerHTML += `<p>평균 점수: <b>${avg}%</b></p><canvas id="scoreChart"></canvas>`;
-
-      const lastFive = records.slice(-5);
-      const ctx = document.getElementById('scoreChart').getContext('2d');
+    function renderChart(correct, wrong) {
+      const ctx = document.getElementById("resultChart");
       new Chart(ctx, {
-        type: 'bar',
+        type: "doughnut",
         data: {
-          labels: lastFive.map(r => new Date(r.date).toLocaleDateString()),
+          labels: ["정답", "오답"],
           datasets: [{
-            label: '최근 점수',
-            data: lastFive.map(r => r.percentage),
-            backgroundColor: '#60a5fa'
+            data: [correct, wrong],
+            backgroundColor: ["#4caf50", "#f44336"]
           }]
-        },
-        options: { scales: { y: { beginAtZero: true, max: 100 } } }
+        }
       });
     }
 
-    function saveResult(score, total) {
-      const record = {
-        date: new Date().toISOString(),
-        score,
-        total,
-        percentage: Math.round((score/total)*100)
-      };
-      const existing = JSON.parse(localStorage.getItem(RESULT_KEY) || '[]');
-      localStorage.setItem(RESULT_KEY, JSON.stringify([...existing, record]));
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
     }
 
-    showPage('practice');
+    loadQuestions();
   </script>
 </body>
 </html>
