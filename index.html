@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>백석대 졸업고사</title>
+  <title>📖 백석대 성경고사</title>
   <style>
     body {
       font-family: 'Noto Sans KR', sans-serif;
@@ -47,9 +47,16 @@
       color: #d9534f;
       font-weight: bold;
     }
-    #result {
-      margin-top: 15px;
-      font-size: 1.1em;
+    #stats {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f8ff;
+      border-radius: 10px;
+      display: none;
+      text-align: left;
+    }
+    #result p {
+      margin: 5px 0;
     }
   </style>
 </head>
@@ -73,49 +80,68 @@
     <div id="result"></div>
   </div>
 
+  <div id="stats">
+    <h3>시험 통계</h3>
+    <div id="score-log"></div>
+  </div>
+
   <script>
     let questions = [];
     let currentIndex = 0;
-    let mode = '';
+    let mode = ''; // practice or mock
     let answers = [];
     let timer;
     let timeLeft = 0;
+    let mockScores = JSON.parse(localStorage.getItem("mockScores") || "[]");
 
     document.getElementById("practice-btn").onclick = () => startMode("practice");
     document.getElementById("mock-btn").onclick = () => startMode("mock");
     document.getElementById("home-btn").onclick = goHome;
     document.getElementById("next-btn").onclick = nextQuestion;
     document.getElementById("prev-btn").onclick = prevQuestion;
-    document.getElementById("submit-btn").onclick = showMockResult;
+    document.getElementById("submit-btn").onclick = submitMock;
+
+    function goHome() {
+      document.getElementById("home-screen").style.display = "block";
+      document.getElementById("home-btn").style.display = "none";
+      document.getElementById("question-container").style.display = "none";
+      document.getElementById("stats").style.display = "true";
+      clearInterval(timer);
+      currentIndex = 0;
+      answers = [];
+      showStats();
+    }
 
     async function startMode(selectedMode) {
       mode = selectedMode;
       document.getElementById("home-screen").style.display = "none";
       document.getElementById("home-btn").style.display = "block";
       document.getElementById("question-container").style.display = "block";
+      document.getElementById("stats").style.display = "none";
+
       await loadQuestions();
 
-      if(mode === "mock") {
-        questions = shuffle([...questions]).slice(0,50); // 문제만 랜덤
-        startTimer(3000); // 50분
-        document.getElementById("prev-btn").style.display = "inline";
+      if (mode === "mock") {
+        questions = shuffle([...questions]).slice(0, 50);
+        answers = Array(questions.length).fill(null);
+        startTimer(50*60); // 50분
         document.getElementById("submit-btn").style.display = "inline";
+        document.getElementById("prev-btn").style.display = "inline";
       } else {
         document.getElementById("timer").innerText = "";
-        document.getElementById("prev-btn").style.display = "none";
         document.getElementById("submit-btn").style.display = "none";
+        document.getElementById("prev-btn").style.display = "none";
       }
 
-      answers = new Array(questions.length).fill(null);
       currentIndex = 0;
       showQuestion();
     }
 
     async function loadQuestions() {
-      const files = [1,2,3,4,5,6,7,8,9,10]; // 여러 txt 파일
-      const loaded = [];
-      for(const num of files){
-        try{
+      const files = [1,2,3]; // 여러 txt 파일
+      let loaded = [];
+      for (const num of files) {
+        try {
           const res = await fetch(`questions/${num}.txt`);
           if(res.ok){
             const text = await res.text();
@@ -123,32 +149,32 @@
           }
         } catch(e){ console.log(e); }
       }
-      questions = loaded; 
+      questions = loaded;
     }
 
     function parseQuestions(text){
-      const blocks = text.split(/\n\s*\n/);
-      return blocks.map(block=>{
-        const lines = block.trim().split("\n").filter(l=>l.trim()!=="");
-        const q = lines[0];
-        const opts = lines.slice(1,5);
-        const answerLine = lines.find(l=>l.startsWith("답:"));
-        const answer = answerLine ? parseInt(answerLine.replace("답:","").replace("번","").trim()) : 0;
-        return {question:q, options:opts, answer};
-      }).filter(q=>q.question);
+      const blocks = text.trim().split(/\n(?=1번:)/); // 1번 시작마다 분리
+      return blocks.map(block => {
+        const lines = block.split("\n").map(l => l.trim());
+        const questionText = lines[0].replace(/답:.*$/,"").trim();
+        const options = lines.slice(1,5).map(l => l.replace(/^\d번:\s*/,""));
+        const answerLine = lines.find(l => l.startsWith("답:"));
+        const answer = answerLine ? parseInt(answerLine.replace(/답:\s*(\d)번/, "$1")) -1 : 0;
+        return {question: questionText, options, answer};
+      });
     }
 
-    function showQuestion(){
+    function showQuestion() {
       const q = questions[currentIndex];
       document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
       const optionsDiv = document.getElementById("options");
       optionsDiv.innerHTML = "";
-      q.options.forEach((opt,i)=>{
+      q.options.forEach((opt, i) => {
         const btn = document.createElement("button");
         btn.innerText = opt;
-        btn.onclick = ()=>selectAnswer(i);
-        if(answers[currentIndex]===i){
-          btn.style.backgroundColor = "#28a745"; // 선택시 표시
+        btn.onclick = () => selectAnswer(i);
+        if(mode==="mock" && answers[currentIndex] !== null){
+          if(i===answers[currentIndex]) btn.style.backgroundColor="#ffc107";
         }
         optionsDiv.appendChild(btn);
       });
@@ -157,15 +183,15 @@
 
     function selectAnswer(i){
       const q = questions[currentIndex];
-      const correctIndex = q.answer-1; 
       if(mode==="practice"){
-        if(i===correctIndex){
-          document.getElementById("result").innerText = "✅ 정답입니다!";
+        if(i===q.answer){
+          document.getElementById("result").innerHTML = "✅ 정답입니다!";
         } else {
-          document.getElementById("result").innerText = `❌ 오답입니다. 정답: ${q.answer}번`;
+          document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
         }
       } else {
         answers[currentIndex] = i;
+        // 다음 문제 이동
         if(currentIndex < questions.length-1){
           currentIndex++;
           showQuestion();
@@ -179,34 +205,43 @@
         showQuestion();
       }
     }
-
     function prevQuestion(){
-      if(currentIndex > 0){
+      if(currentIndex >0){
         currentIndex--;
         showQuestion();
       }
     }
 
-    function showMockResult(){
+    function submitMock(){
       clearInterval(timer);
       let score = 0;
-      let resultHTML = "<h3>결과</h3>";
+      let resultHTML = "";
       questions.forEach((q,i)=>{
-        if(answers[i] === q.answer-1){
-          score++;
-          resultHTML += `<p>✅ ${i+1}번 정답</p>`;
-        } else {
-          const sel = answers[i]!==null ? answers[i]+1 : "-";
-          resultHTML += `<p>❌ ${i+1}번 오답 (선택: ${sel}, 정답: ${q.answer})</p>`;
-        }
+        if(answers[i]===q.answer) score++;
+        resultHTML += `<p>${i+1}번: ${answers[i]===q.answer?"✅ 정답":"❌ 오답"} (정답: ${q.options[q.answer]})</p>`;
       });
       resultHTML = `<h2>총점: ${Math.round(score/questions.length*100)}점</h2>` + resultHTML;
       document.getElementById("question").innerHTML = resultHTML;
       document.getElementById("options").innerHTML = "";
-      document.getElementById("next-btn").style.display = "none";
-      document.getElementById("prev-btn").style.display = "none";
-      document.getElementById("submit-btn").style.display = "none";
-      document.getElementById("timer").innerText = "";
+      document.getElementById("next-btn").style.display="none";
+      document.getElementById("prev-btn").style.display="none";
+      document.getElementById("submit-btn").style.display="none";
+      document.getElementById("timer").innerText="";
+
+      // 통계 기록
+      mockScores.push(Math.round(score/questions.length*100));
+      if(mockScores.length>10) mockScores.shift();
+      localStorage.setItem("mockScores", JSON.stringify(mockScores));
+      showStats();
+    }
+
+    function showStats(){
+      document.getElementById("stats").style.display="block";
+      const logDiv = document.getElementById("score-log");
+      logDiv.innerHTML = "";
+      mockScores.forEach((s,i)=>{
+        logDiv.innerHTML += `<p>${i+1}회: ${s}점</p>`;
+      });
     }
 
     function startTimer(seconds){
@@ -214,25 +249,16 @@
       timer = setInterval(()=>{
         const min = Math.floor(timeLeft/60);
         const sec = timeLeft%60;
-        document.getElementById("timer").innerText = `⏰ 남은 시간: ${min}분 ${sec<10 ? "0"+sec:sec}초`;
+        document.getElementById("timer").innerText = `⏰ 남은 시간: ${min}분 ${sec<10?"0"+sec:sec}초`;
         if(timeLeft--<=0){
           clearInterval(timer);
-          showMockResult();
+          submitMock();
         }
       },1000);
     }
 
     function shuffle(arr){
       return arr.sort(()=>Math.random()-0.5);
-    }
-
-    function goHome(){
-      document.getElementById("home-screen").style.display = "block";
-      document.getElementById("home-btn").style.display = "none";
-      document.getElementById("question-container").style.display = "none";
-      clearInterval(timer);
-      answers = [];
-      currentIndex=0;
     }
 
   </script>
