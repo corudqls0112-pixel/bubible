@@ -95,41 +95,57 @@
       answers = [];
     }
 
-    async function startMode(selectedMode) {
-      mode = selectedMode;
-      document.getElementById("home-screen").style.display = "none";
-      document.getElementById("home-btn").style.display = "block";
-      document.getElementById("question-container").style.display = "block";
-      await loadQuestions();
+   async function startMode(selectedMode) {
+  mode = selectedMode;
+  document.getElementById("home-screen").style.display = "none";
+  document.getElementById("home-btn").style.display = "block";
+  document.getElementById("question-container").style.display = "block";
+  
+  await loadQuestions();
 
-      if (mode === "mock") {
-        questions = shuffle(questions).slice(0, 50); // 50문제 랜덤
-        startTimer(3000); // 50분 = 3000초
-        document.getElementById("prev-btn").style.display = "inline";
-        document.getElementById("submit-btn").style.display = "inline";
-      } else {
-        document.getElementById("timer").innerText = "";
-        document.getElementById("prev-btn").style.display = "none";
-        document.getElementById("submit-btn").style.display = "none";
-      }
+  if (questions.length === 0) {
+    alert("문제를 불러오지 못했습니다. questions 폴더를 확인하세요!");
+    goHome();
+    return;
+  }
 
-      showQuestion();
-    }
+  if (mode === "mock") {
+    questions = shuffle(questions).slice(0, 50); // ✅ 50문제 랜덤 선택
+    startTimer(3000); // ✅ 50분 = 3000초
+    document.getElementById("prev-btn").style.display = "inline";
+    document.getElementById("submit-btn").style.display = "inline";
+  } else {
+    document.getElementById("timer").innerText = "";
+    document.getElementById("prev-btn").style.display = "none";
+    document.getElementById("submit-btn").style.display = "none";
+  }
+
+  showQuestion();
+}
 
     async function loadQuestions() {
-      const files = [1,2,3,4,5,6,7,8,9,10];
-      const loaded = [];
-      for (const num of files) {
-        try {
-          const res = await fetch(`questions/${num}.txt`);
-          if (res.ok) {
-            const text = await res.text();
-            loaded.push(...parseMultipleQuestions(text));
-          }
-        } catch (e) { console.log(e); }
+  const files = [1,2,3,4,5,6,7,8,9,10];
+  const loaded = [];
+  for (const num of files) {
+    try {
+      const res = await fetch(`questions/${num}.txt`);
+      if (res.ok) {
+        const text = await res.text();
+        loaded.push(...parseMultipleQuestions(text));
       }
-      questions = shuffle(loaded);
-    }
+    } catch (e) { console.log(e); }
+  }
+  questions = shuffleQuestionsOnly(loaded); // ✅ 문제 순서만 랜덤
+
+}
+function shuffleQuestionsOnly(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
     function parseMultipleQuestions(text) {
       const blocks = text.split(/\n\s*\n/);
