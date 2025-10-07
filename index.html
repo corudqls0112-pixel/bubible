@@ -127,27 +127,24 @@ async function loadQuestions() {
   questions = loaded;
 }
 
-// 텍스트 파일 파싱: 문제, 1~4보기, 답
+// 문제 파싱
 function parseQuestions(text) {
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const questions = [];
+  const lines = text.split("\n").map(l=>l.trim()).filter(Boolean);
+  const qs = [];
   let current = {};
-
-  lines.forEach(line => {
-    if(line.startsWith("답:")) {
-      current.answer = parseInt(line.replace("답:", "").trim()) - 1; // 0-based
-      questions.push(current);
+  lines.forEach(line=>{
+    if(line.startsWith("답:")){
+      current.answer = parseInt(line.replace("답:","").trim())-1;
+      qs.push(current);
       current = {};
-    } else if(!current.question) {
+    } else if(!current.question){
       current.question = line;
+      current.options = [];
     } else {
-      if(!current.options) current.options = [];
-      // 보기에서 "1번: " 제거
-      current.options.push(line.replace(/^\d번:\s*/, ""));
+      current.options.push(line.replace(/^\d번:\s*/,""));
     }
   });
-
-  return questions;
+  return qs;
 }
 
 function showQuestion(){
@@ -162,6 +159,17 @@ function showQuestion(){
     optionsDiv.appendChild(btn);
   });
   document.getElementById("result").innerText = "";
+
+// 버튼 표시
+  if(mode==="practice"){
+    document.getElementById("next-btn").style.display = "inline";
+    document.getElementById("prev-btn").style.display = "none";
+    document.getElementById("submit-btn").style.display = "none";
+  } else {
+    document.getElementById("next-btn").style.display = "inline";
+    document.getElementById("prev-btn").style.display = currentIndex>0 ? "inline":"none";
+    document.getElementById("submit-btn").style.display = "inline";
+  }
 }
 
 function selectAnswer(i){
