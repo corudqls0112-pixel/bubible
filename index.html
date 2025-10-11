@@ -3,137 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>성경고사 문제은행</title>
+<title>백석대 성경고사</title>
 <style>
 body {
-  font-family: 'Pretendard', sans-serif;
-  background: #f8fafc;
-  margin: 0; padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-header {
-  background: #2563eb;
-  color: white;
-  width: 100%;
-  padding: 15px 0;
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #e6f0ff;
   text-align: center;
-  font-size: 22px;
-  font-weight: bold;
-  position: relative;
+  margin: 0;
+  padding: 10px;
 }
-#homeBtn {
-  position: absolute;
-  left: 15px;
-  top: 15px;
-  background: #1e40af;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-main {
-  width: 95%;
-  max-width: 700px;
-  background: white;
-  margin-top: 20px;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+h1 { color: #002366; font-size: 2em; margin-bottom: 10px; }
 button {
-  background: #2563eb;
-  color: white;
+  margin: 5px;
+  padding: 10px 15px;
+  font-size: 1em;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 16px;
-  margin: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  width: 90%;
-  max-width: 320px;
+  background-color: #0056d6;
+  color: white;
 }
-button:hover { background: #1e40af; }
-#options button {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  text-align: left;
+button:hover { background-color: #003c9d; }
+#question-container {
+  margin-top: 20px;
+  padding: 15px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: none;
 }
-.hidden { display: none; }
-#result div {
-  border-bottom: 1px solid #e2e8f0;
-  padding: 8px 0;
-}
-.question-result {
-  margin-bottom: 10px;
-  padding: 8px;
-  border-radius: 8px;
-}
-@media (max-width: 600px) {
-  main { padding: 15px; font-size: 15px; }
-  button { font-size: 15px; }
+.timer { font-size: 1.2em; color: #d9534f; font-weight: bold; }
+@media(max-width:600px){
+  button { font-size: 0.9em; padding: 8px 10px; }
 }
 </style>
 </head>
 <body>
+<h1>📖 백석대 성경고사</h1>
 
-<header>
-  📖 성경고사 문제은행
-  <button id="homeBtn" onclick="goHome()">🏠 홈</button>
-</header>
+<div id="home-screen">
+  <button id="practice-btn">연습문제 시작</button>
+  <button id="mock-btn">모의고사 시작</button>
+</div>
 
-<main>
-  <div id="menu">
-    <button onclick="startPracticeMode()">연습 모드</button>
-    <button onclick="startMockExam()">모의고사</button>
-  </div>
+<div id="range-selection" style="display:none;">
+  <h2>범위를 선택하세요</h2>
+  <div id="range-buttons"></div>
+  <button id="range-back">⬅ 돌아가기</button>
+</div>
 
-  <div id="rangeSelect" class="hidden">
-    <h3>📚 범위 선택</h3>
-    <div id="rangeButtons"></div>
-  </div>
+<button id="home-btn" style="display:none;">🏠 홈으로</button>
 
-  <div id="quiz" class="hidden">
-    <div id="timer" style="text-align:right; font-weight:bold;"></div>
-    <div id="question" style="margin:20px 0; font-weight:bold;"></div>
-    <div id="options"></div>
-    <div style="text-align:center; margin-top:20px;">
-      <button id="prevBtn" onclick="prevQuestion()">이전</button>
-      <button id="nextBtn" onclick="nextQuestion()">다음</button>
-      <button id="submitBtn" class="hidden" onclick="submitMockExam()">제출</button>
-    </div>
-  </div>
-
-  <div id="result" class="hidden"></div>
-</main>
+<div id="question-container">
+  <div class="timer" id="timer"></div>
+  <h2 id="question"></h2>
+  <div id="options"></div>
+  <button id="prev-btn" style="display:none;">⬅ 이전문제</button>
+  <button id="next-btn">다음문제 ➡</button>
+  <button id="submit-btn" style="display:none;">제출하기</button>
+  <div id="result"></div>
+</div>
 
 <script>
-const bookFiles = {
-  "고린도전서":"1.txt","고린도후서":"2.txt","갈라디아서":"3.txt","에베소서":"4.txt","빌립보서":"5.txt",
-  "골로새서":"6.txt","데살로니가전서":"7.txt","데살로니가후서":"8.txt","디모데전서":"9.txt","디모데후서":"10.txt",
-  "디도서":"11.txt","빌레몬서":"12.txt","히브리서":"13.txt","야고보서":"14.txt","베드로전서":"15.txt",
-  "베드로후서":"16.txt","요한일서":"17.txt","요한이서":"18.txt","요한삼서":"19.txt","유다서":"20.txt","요한계시록":"21.txt"
-};
+const ranges = ["고린도전서","고린도후서","갈라디아서","에베소서","빌립보서","골로새서",
+"데살로니가전서","데살로니가후서","디모데전서","디모데후서","디도서","빌레몬서",
+"히브리서","야고보서","베드로전서","베드로후서","요한일서","요한이서","요한삼서",
+"유다서","요한계시록"];
 
-let mode="", questions=[], currentIndex=0, userAnswers=[], timerInterval=0;
+let questions = [], currentIndex=0, mode="", score=0, answers=[], timer, timeLeft=0;
 
-// 홈 버튼
-function goHome(){
-  clearInterval(timerInterval);
-  mode=""; questions=[]; currentIndex=0; userAnswers=[];
-  document.getElementById("menu").classList.remove("hidden");
-  document.getElementById("rangeSelect").classList.add("hidden");
-  document.getElementById("quiz").classList.add("hidden");
-  document.getElementById("result").classList.add("hidden");
+document.getElementById("practice-btn").onclick = ()=>showRangeSelection("practice");
+document.getElementById("mock-btn").onclick = ()=>startMode("mock");
+document.getElementById("home-btn").onclick = goHome;
+document.getElementById("next-btn").onclick = nextQuestion;
+document.getElementById("prev-btn").onclick = prevQuestion;
+document.getElementById("submit-btn").onclick = showMockResult;
+document.getElementById("range-back").onclick = ()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";};
+
+function showRangeSelection(selectedMode){
+  mode = selectedMode;
+  document.getElementById("home-screen").style.display="none";
+  document.getElementById("range-selection").style.display="block";
+  const container = document.getElementById("range-buttons");
+  container.innerHTML="";
+  ranges.forEach(range=>{
+    const btn = document.createElement("button");
+    btn.innerText = range;
+    btn.onclick = ()=>startPracticeRange(range);
+    container.appendChild(btn);
+  });
 }
 
-// ✅ 문제 파싱
+async function startPracticeRange(range){
+  document.getElementById("range-selection").style.display="none";
+  document.getElementById("home-btn").style.display="block";
+  document.getElementById("question-container").style.display="block";
+  await loadQuestions([range]);
+  showQuestion();
+}
+
+async function startMode(selectedMode){
+  mode = selectedMode;
+  document.getElementById("home-screen").style.display="none";
+  document.getElementById("home-btn").style.display="block";
+  document.getElementById("question-container").style.display="block";
+  if(mode==="mock"){
+    await loadQuestions(ranges);
+    questions = getMockQuestions(questions,50);
+    startTimer(3000); // 50분
+    document.getElementById("prev-btn").style.display="inline";
+    document.getElementById("submit-btn").style.display="inline";
+  }
+  showQuestion();
+}
+
+async function loadQuestions(rangeList){
+  let loaded=[];
+  for(const r of rangeList){
+    try{
+      const res = await fetch(`questions/${r}.txt`);
+      if(res.ok){
+        const txt = await res.text();
+        loaded.push(...parseQuestions(txt));
+      }
+    }catch(e){console.log(e);}
+  }
+  questions=loaded;
+}
+
 function parseQuestions(text){
   const lines = text.split("\n").map(l=>l.trim()).filter(Boolean);
-  const qs=[]; let current={};
+  const qs=[];
+  let current={};
   lines.forEach(line=>{
     if(line.startsWith("답:")){
       current.answer = parseInt(line.replace("답:","").trim())-1;
@@ -141,7 +142,7 @@ function parseQuestions(text){
       current={};
     } else if(!current.question){
       current.question = line;
-      current.options = [];
+      current.options=[];
     } else {
       current.options.push(line.replace(/^\d번:\s*/,""));
     }
@@ -149,119 +150,104 @@ function parseQuestions(text){
   return qs;
 }
 
-// 연습모드 시작
-function startPracticeMode(){
-  mode="practice";
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("rangeSelect").classList.remove("hidden");
-  const container=document.getElementById("rangeButtons"); container.innerHTML="";
-  Object.keys(bookFiles).forEach(name=>{
-    const btn=document.createElement("button");
-    btn.textContent=name;
-    btn.onclick=()=>loadPracticeQuestions(bookFiles[name]);
-    container.appendChild(btn);
+function getMockQuestions(allQuestions,total){
+  const mock=[];
+  const perRange = Math.ceil(total/ranges.length);
+  ranges.forEach(range=>{
+    const rangeQs = allQuestions.filter(q=>q.range===range);
+    shuffle(rangeQs);
+    mock.push(...rangeQs.slice(0,perRange));
   });
+  shuffle(mock);
+  return mock.slice(0,total);
 }
 
-// 연습모드 문제 불러오기
-async function loadPracticeQuestions(file){
-  const res=await fetch(file); const text=await res.text();
-  questions=parseQuestions(text); // ✅ 모든 문제
-  currentIndex=0; userAnswers=new Array(questions.length).fill(null);
-  document.getElementById("rangeSelect").classList.add("hidden");
-  document.getElementById("quiz").classList.remove("hidden");
-  document.getElementById("submitBtn").classList.add("hidden");
-  document.getElementById("timer").innerText="";
-  showQuestion();
-}
-
-// 모의고사 시작
-async function startMockExam(){
-  mode="mock";
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("quiz").classList.remove("hidden");
-  let allQuestions=[];
-  for(const file of Object.values(bookFiles)){
-    const res=await fetch(file); const text=await res.text();
-    const qs=parseQuestions(text);
-    allQuestions.push(...qs.sort(()=>0.5-Math.random()).slice(0,3)); // 범위당 3문제
-  }
-  questions=allQuestions.sort(()=>0.5-Math.random()).slice(0,50);
-  userAnswers=new Array(questions.length).fill(null);
-  currentIndex=0;
-  showQuestion();
-  startTimer(50*60);
-}
-
-// 타이머
-function startTimer(seconds){
-  const timerDiv=document.getElementById("timer");
-  function update(){
-    const m=Math.floor(seconds/60), s=seconds%60;
-    timerDiv.textContent=`⏰ 남은 시간: ${m}:${s.toString().padStart(2,"0")}`;
-    if(seconds<=0){ clearInterval(timerInterval); submitMockExam(); }
-    seconds--;
-  }
-  update();
-  timerInterval=setInterval(update,1000);
-}
-
-// 문제 표시
 function showQuestion(){
-  const q=questions[currentIndex];
-  document.getElementById("question").innerText=`(${currentIndex+1}/${questions.length}) ${q.question}`;
-  const optionsDiv=document.getElementById("options"); optionsDiv.innerHTML="";
+  if(currentIndex>=questions.length) return;
+  const q = questions[currentIndex];
+  document.getElementById("question").innerText=`(${currentIndex+1}) ${q.question}`;
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML="";
   q.options.forEach((opt,i)=>{
-    const btn=document.createElement("button");
+    const btn = document.createElement("button");
     btn.innerText=opt;
-    btn.style.background=userAnswers[currentIndex]===i?"#93c5fd":"";
-    btn.onclick=()=>{
-      if(mode==="practice"){
-        const correct=i===q.answer;
-        userAnswers[currentIndex]=i;
-        alert(correct?`✅ 정답`:`❌ 오답\n정답: ${q.options[q.answer]}`);
-      } else { userAnswers[currentIndex]=i; nextQuestion(); }
-      showQuestion();
-    };
+    btn.onclick=()=>selectAnswer(i);
     optionsDiv.appendChild(btn);
   });
-  document.getElementById("prevBtn").disabled=currentIndex===0;
-  document.getElementById("nextBtn").disabled=currentIndex===questions.length-1;
-  if(mode==="mock" && currentIndex===questions.length-1) document.getElementById("submitBtn").classList.remove("hidden");
-  else document.getElementById("submitBtn").classList.add("hidden");
+  document.getElementById("result").innerText="";
 }
 
-function nextQuestion(){ if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); } }
-function prevQuestion(){ if(currentIndex>0){ currentIndex--; showQuestion(); } }
+function selectAnswer(i){
+  const q = questions[currentIndex];
+  if(mode==="practice"){
+    if(i===q.answer){
+      document.getElementById("result").innerHTML=`✅ 정답입니다!<br>정답: ${q.options[q.answer]}`;
+    }else{
+      document.getElementById("result").innerHTML=`❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
+    }
+  } else { // mock
+    answers[currentIndex]=i;
+    nextQuestion();
+  }
+}
 
-// 모의고사 결과
-function submitMockExam(){
-  clearInterval(timerInterval);
-  document.getElementById("quiz").classList.add("hidden");
-  const resultDiv=document.getElementById("result"); resultDiv.classList.remove("hidden");
-  resultDiv.innerHTML=`<h3>📊 결과</h3>`;
-  let correct=0;
+function nextQuestion(){
+  if(currentIndex<questions.length-1){
+    currentIndex++;
+    showQuestion();
+  }
+}
+function prevQuestion(){
+  if(currentIndex>0){
+    currentIndex--;
+    showQuestion();
+  }
+}
+
+function showMockResult(){
+  clearInterval(timer);
+  let resultHTML=`<h2>결과</h2>`;
+  let score=0;
   questions.forEach((q,i)=>{
-    const userAns=userAnswers[i];
-    const isCorrect=userAns===q.answer;
-    if(isCorrect) correct++;
-    const userChoice=userAns!==null?q.options[userAns]:"(무응답)";
-    const correctChoice=q.options[q.answer];
-    const div=document.createElement("div");
-    div.classList.add("question-result");
-    div.style.background=isCorrect?"#e6ffed":"#ffe6e6";
-    div.innerHTML=`<strong>${i+1}. ${q.question}</strong><br>내 답: ${userChoice}<br>정답: ${correctChoice}<br><b style="color:${isCorrect?'green':'red'}">${isCorrect?'정답 ✅':'오답 ❌'}</b>`;
-    resultDiv.appendChild(div);
+    const correct=q.answer;
+    const selected=answers[i];
+    if(selected===correct) score++;
+    resultHTML+=`<p>${i+1}번 - 선택: ${selected!==undefined?q.options[selected]:"미응답"}, 정답: ${q.options[correct]} ${selected===correct?"✅":"❌"}</p>`;
   });
-  const score=document.createElement("h4");
-  score.textContent=`총점: ${correct}/${questions.length}`;
-  score.style.textAlign="center"; score.style.marginTop="20px";
-  resultDiv.prepend(score);
-  const retryBtn=document.createElement("button");
-  retryBtn.innerText="다시하기"; retryBtn.onclick=()=>location.reload();
-  retryBtn.style.display="block"; retryBtn.style.margin="20px auto";
-  resultDiv.appendChild(retryBtn);
+  resultHTML=`<h3>총점: ${Math.round(score/questions.length*100)}점</h3>`+resultHTML;
+  document.getElementById("question").innerHTML=resultHTML;
+  document.getElementById("options").innerHTML="";
+  document.getElementById("next-btn").style.display="none";
+  document.getElementById("prev-btn").style.display="none";
+  document.getElementById("submit-btn").style.display="none";
+  document.getElementById("timer").innerText="";
 }
+
+function startTimer(sec){
+  timeLeft=sec;
+  timer=setInterval(()=>{
+    const min=Math.floor(timeLeft/60);
+    const s=timeLeft%60;
+    document.getElementById("timer").innerText=`⏰ 남은 시간: ${min}분 ${s<10?"0"+s:s}초`;
+    if(timeLeft--<=0){
+      clearInterval(timer);
+      showMockResult();
+    }
+  },1000);
+}
+
+function goHome(){
+  document.getElementById("home-screen").style.display="block";
+  document.getElementById("range-selection").style.display="none";
+  document.getElementById("home-btn").style.display="none";
+  document.getElementById("question-container").style.display="none";
+  clearInterval(timer);
+  currentIndex=0;
+  answers=[];
+  score=0;
+}
+
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 </script>
 </body>
 </html>
