@@ -215,8 +215,9 @@ function showMockResult(){
   questions.forEach((q,i)=>{
     const correctIndex = q.answer;
     const user = answers[i];
-    if(user===correctIndex) score++;
-    html+=`<p>${i+1}. 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[correctIndex]}</p>`;
+    const isCorrect = user===correctIndex;
+    if(isCorrect) score++;
+    html+=`<p>${i+1}. ${isCorrect?'✅':'❌'} 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[correctIndex]}</p>`;
   });
   html=`<h2>총점: ${Math.round(score/questions.length*100)}</h2>`+html;
   document.getElementById("question").innerHTML=html;
