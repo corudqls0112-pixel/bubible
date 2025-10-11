@@ -6,284 +6,262 @@
 <title>백석대 졸업고사 대비</title>
 <style>
   body {
-    font-family: 'Pretendard', sans-serif;
-    background: #f8fafc;
-    margin: 0; padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  header {
-    background: #2563eb;
-    color: white;
-    width: 100%;
-    padding: 15px 0;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-  }
-  main {
-    width: 95%;
-    max-width: 700px;
-    background: white;
-    margin-top: 20px;
-    border-radius: 12px;
+    font-family: 'Arial', sans-serif;
+    background: #e6f0ff;
+    margin: 0;
     padding: 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
   }
+  h1 { color: #003399; font-size: 1.8em; }
   button {
-    background: #2563eb;
-    color: white;
+    margin: 5px;
+    padding: 10px 15px;
     border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 16px;
-    margin: 8px;
+    border-radius: 10px;
+    background-color: #3366cc;
+    color: white;
     cursor: pointer;
-    width: 90%;
-    max-width: 320px;
   }
-  button:hover { background: #1e40af; }
-  #options button {
+  button:hover { background-color: #264d99; }
+  #container { max-width: 500px; margin: 0 auto; }
+  .option-btn {
     display: block;
     width: 100%;
-    margin-top: 8px;
-    text-align: left;
+    margin: 5px 0;
+    background: white;
+    color: #003366;
+    border: 1px solid #003366;
   }
-  .hidden { display: none; }
-  #result div {
-    border-bottom: 1px solid #e2e8f0;
-    padding: 8px 0;
-  }
-  .question-result {
-    margin-bottom: 10px;
-    padding: 8px;
-    border-radius: 8px;
-  }
+  #timer { font-weight: bold; color: red; margin: 10px; }
+  #result { margin-top: 15px; text-align: left; }
   @media (max-width: 600px) {
-    main { padding: 15px; font-size: 15px; }
-    button { font-size: 15px; }
+    body { padding: 10px; }
+    button { width: 100%; }
   }
 </style>
 </head>
 <body>
-
-<header>📖 백석대 졸업고사 대비</header>
-
-<main>
-  <div id="menu">
-    <button onclick="startPracticeMode()">연습 모드</button>
-    <button onclick="startMockExam()">모의고사</button>
+  <div id="home">
+    <h1>📖 백석대 졸업고사</h1>
+    <button onclick="startPractice()">연습문제</button>
+    <button onclick="startExam()">모의고사</button>
   </div>
 
-  <div id="rangeSelect" class="hidden">
-    <h3>📚 범위 선택</h3>
+  <div id="rangeSelect" style="display:none;">
+    <h2>📚 범위를 선택하세요</h2>
     <div id="rangeButtons"></div>
+    <button onclick="goHome()">🏠 홈으로</button>
   </div>
 
-  <div id="quiz" class="hidden">
-    <div id="timer" style="text-align:right; font-weight:bold;"></div>
-    <div id="question" style="margin:20px 0; font-weight:bold;"></div>
+  <div id="quiz" style="display:none;">
+    <div id="timer"></div>
+    <div id="question"></div>
     <div id="options"></div>
-    <div style="text-align:center; margin-top:20px;">
-      <button id="prevBtn" onclick="prevQuestion()">이전</button>
-      <button id="nextBtn" onclick="nextQuestion()">다음</button>
-      <button id="submitBtn" class="hidden" onclick="submitMockExam()">제출</button>
-    </div>
+    <div id="result"></div>
+    <button id="prevBtn" onclick="prevQuestion()">⬅ 이전 문제</button>
+    <button id="nextBtn" onclick="nextQuestion()">➡ 다음 문제</button>
+    <button onclick="submitExam()" id="submitBtn" style="display:none;">제출하기</button>
+    <button onclick="goHome()">🏠 홈으로</button>
   </div>
 
-  <div id="result" class="hidden"></div>
-</main>
+  <script>
+  let mode = "";
+  let questions = [];
+  let currentIndex = 0;
+  let score = 0;
+  let answers = [];
+  let timer;
+  const totalExamQuestions = 50;
+  const examTime = 50 * 60; // 50분
 
-<script>
-const bookFiles = {
-  "고린도전서": "1.txt",
-  "고린도후서": "2.txt",
-  "갈라디아서": "3.txt",
-  "에베소서": "4.txt",
-  "빌립보서": "5.txt",
-  "골로새서": "6.txt",
-  "데살로니가전서": "7.txt",
-  "데살로니가후서": "8.txt",
-  "디모데전서": "9.txt",
-  "디모데후서": "10.txt",
-  "디도서": "11.txt",
-  "빌레몬서": "12.txt",
-  "히브리서": "13.txt",
-  "야고보서": "14.txt",
-  "베드로전서": "15.txt",
-  "베드로후서": "16.txt",
-  "요한일서": "17.txt",
-  "요한이서": "18.txt",
-  "요한삼서": "19.txt",
-  "유다서": "20.txt",
-  "요한계시록": "21.txt"
-};
+  const rangeFiles = {
+    "고린도전서": "1.txt",
+    "고린도후서": "2.txt",
+    "갈라디아서": "3.txt",
+    "에베소서": "4.txt",
+    "빌립보서": "5.txt",
+    "골로새서": "6.txt",
+    "데살로니가전서": "7.txt",
+    "데살로니가후서": "8.txt",
+    "디모데전서": "9.txt",
+    "디모데후서": "10.txt",
+    "디도서": "11.txt",
+    "빌레몬서": "12.txt",
+    "히브리서": "13.txt",
+    "야고보서": "14.txt",
+    "베드로전서": "15.txt",
+    "베드로후서": "16.txt",
+    "요한일서": "17.txt",
+    "요한이서": "18.txt",
+    "요한삼서": "19.txt",
+    "유다서": "20.txt",
+    "요한계시록": "21.txt"
+  };
 
-let mode = "";
-let questions = [];
-let currentIndex = 0;
-let userAnswers = [];
-let timerInterval;
+  function goHome(){
+    document.getElementById("home").style.display = "block";
+    document.getElementById("rangeSelect").style.display = "none";
+    document.getElementById("quiz").style.display = "none";
+    clearInterval(timer);
+  }
 
-// ✅ 문제 파싱
-function parseQuestions(text) {
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const qs = [];
-  let current = {};
-  lines.forEach(line => {
-    if (line.startsWith("답:")) {
-      current.answer = parseInt(line.replace("답:", "").trim()) - 1;
-      qs.push(current);
-      current = {};
-    } else if (!current.question) {
-      current.question = line;
-      current.options = [];
-    } else {
-      current.options.push(line.replace(/^\d번:\s*/, ""));
+  function startPractice(){
+    mode = "practice";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("rangeSelect").style.display = "block";
+    const container = document.getElementById("rangeButtons");
+    container.innerHTML = "";
+    for (let name in rangeFiles) {
+      const btn = document.createElement("button");
+      btn.textContent = name;
+      btn.onclick = ()=>loadQuestions(rangeFiles[name]);
+      container.appendChild(btn);
     }
-  });
-  return qs;
-}
+  }
 
-// ✅ 연습모드 시작
-function startPracticeMode() {
-  mode = "practice";
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("rangeSelect").classList.remove("hidden");
-  const container = document.getElementById("rangeButtons");
-  container.innerHTML = "";
-  Object.keys(bookFiles).forEach(name => {
-    const btn = document.createElement("button");
-    btn.textContent = name;
-    btn.onclick = () => loadQuestions(bookFiles[name]);
-    container.appendChild(btn);
-  });
-}
+  async function startExam(){
+    mode = "exam";
+    document.getElementById("home").style.display = "none";
+    document.getElementById("quiz").style.display = "block";
+    questions = [];
+    const keys = Object.keys(rangeFiles);
+    for (let key of keys){
+      const res = await fetch(`questions/${rangeFiles[key]}`);
+      if(res.ok){
+        const text = await res.text();
+        const allQs = parseQuestions(text);
+        questions.push(...shuffle(allQs).slice(0,3)); // 각 범위에서 3문제씩
+      }
+    }
+    questions = shuffle(questions).slice(0, totalExamQuestions);
+    answers = new Array(questions.length).fill(null);
+    currentIndex = 0;
+    score = 0;
+    showQuestion();
+    document.getElementById("submitBtn").style.display = "block";
+    startTimer(examTime);
+  }
 
-// ✅ 문제 불러오기 (전체)
-async function loadQuestions(file) {
-  const res = await fetch(file);
-  const text = await res.text();
-  questions = parseQuestions(text);  // 🔹 전체 문제 사용
-  currentIndex = 0;
-  userAnswers = new Array(questions.length).fill(null);
-  document.getElementById("rangeSelect").classList.add("hidden");
-  document.getElementById("quiz").classList.remove("hidden");
-  document.getElementById("submitBtn").classList.add("hidden");
-  document.getElementById("timer").innerText = "";
-  showQuestion();
-}
-
-// ✅ 모의고사 시작
-async function startMockExam() {
-  mode = "mock";
-  document.getElementById("menu").classList.add("hidden");
-  document.getElementById("quiz").classList.remove("hidden");
-
-  let allQuestions = [];
-  for (const file of Object.values(bookFiles)) {
-    const res = await fetch(file);
+  async function loadQuestions(file){
+    const res = await fetch(`questions/${file}`);
     const text = await res.text();
-    const qs = parseQuestions(text);
-    const pickCount = Math.min(5, qs.length);
-    allQuestions.push(...qs.sort(() => 0.5 - Math.random()).slice(0, pickCount));
+    questions = parseQuestions(text);
+    // ✅ 수정: 10문제 제한 제거 → 모든 문제 표시
+    answers = new Array(questions.length).fill(null);
+    document.getElementById("rangeSelect").style.display = "none";
+    document.getElementById("quiz").style.display = "block";
+    document.getElementById("submitBtn").style.display = "none";
+    currentIndex = 0;
+    showQuestion();
   }
 
-  questions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 50);
-  userAnswers = new Array(questions.length).fill(null);
-  currentIndex = 0;
-  showQuestion();
-  startTimer(50 * 60); // 50분
-}
+  function parseQuestions(text){
+    const lines = text.split("\n").map(l=>l.trim()).filter(Boolean);
+    const qs = [];
+    let current = {};
+    lines.forEach(line=>{
+      if(line.startsWith("답:")){
+        current.answer = parseInt(line.replace("답:","").trim())-1;
+        qs.push(current);
+        current = {};
+      } else if(!current.question){
+        current.question = line;
+        current.options = [];
+      } else {
+        current.options.push(line.replace(/^\d번:\s*/,""));
+      }
+    });
+    return qs;
+  }
 
-// ✅ 타이머
-function startTimer(seconds) {
-  const timerDiv = document.getElementById("timer");
-  function update() {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    timerDiv.textContent = `⏰ 남은 시간: ${m}:${s.toString().padStart(2, "0")}`;
-    if (seconds <= 0) {
-      clearInterval(timerInterval);
-      submitMockExam();
+  function showQuestion(){
+    const q = questions[currentIndex];
+    document.getElementById("question").innerText = `(${currentIndex+1}/${questions.length}) ${q.question}`;
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+    q.options.forEach((opt,i)=>{
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerText = opt;
+      btn.onclick = ()=>selectAnswer(i);
+      optionsDiv.appendChild(btn);
+    });
+    document.getElementById("result").innerText = "";
+  }
+
+  function selectAnswer(i){
+    const q = questions[currentIndex];
+    answers[currentIndex] = i;
+    if(mode === "practice"){
+      const resultDiv = document.getElementById("result");
+      if(i === q.answer){
+        resultDiv.innerHTML = "✅ 정답입니다!";
+      } else {
+        resultDiv.innerHTML = `❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
+      }
+    } else if(mode === "exam"){
+      nextQuestion();
     }
-    seconds--;
   }
-  update();
-  timerInterval = setInterval(update, 1000);
-}
 
-// ✅ 문제 표시
-function showQuestion() {
-  const q = questions[currentIndex];
-  document.getElementById("question").innerText = `(${currentIndex + 1}/${questions.length}) ${q.question}`;
-  const optionsDiv = document.getElementById("options");
-  optionsDiv.innerHTML = "";
-  q.options.forEach((opt, i) => {
-    const btn = document.createElement("button");
-    btn.innerText = opt;
-    if (userAnswers[currentIndex] === i) btn.style.background = "#93c5fd";
-    btn.onclick = () => selectAnswer(i);
-    optionsDiv.appendChild(btn);
-  });
-  document.getElementById("prevBtn").disabled = currentIndex === 0;
-  document.getElementById("nextBtn").disabled = currentIndex === questions.length - 1;
-  if (mode === "mock" && currentIndex === questions.length - 1)
-    document.getElementById("submitBtn").classList.remove("hidden");
-  else document.getElementById("submitBtn").classList.add("hidden");
-}
+  function nextQuestion(){
+    if(currentIndex < questions.length - 1){
+      currentIndex++;
+      showQuestion();
+    }
+  }
 
-function selectAnswer(i) {
-  userAnswers[currentIndex] = i;
-  showQuestion();
-}
-function nextQuestion() { if (currentIndex < questions.length - 1) { currentIndex++; showQuestion(); } }
-function prevQuestion() { if (currentIndex > 0) { currentIndex--; showQuestion(); } }
+  function prevQuestion(){
+    if(currentIndex > 0){
+      currentIndex--;
+      showQuestion();
+    }
+  }
 
-// ✅ 모의고사 결과
-function submitMockExam() {
-  clearInterval(timerInterval);
-  document.getElementById("quiz").classList.add("hidden");
-  const resultDiv = document.getElementById("result");
-  resultDiv.classList.remove("hidden");
-  resultDiv.innerHTML = `<h3>📊 결과</h3>`;
-  let correct = 0;
+  function submitExam(){
+    clearInterval(timer);
+    let correct = 0;
+    const resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = "<h3>📝 결과</h3>";
 
-  questions.forEach((q, i) => {
-    const userAns = userAnswers[i];
-    const isCorrect = userAns === q.answer;
-    if (isCorrect) correct++;
+    questions.forEach((q,idx)=>{
+      const userAns = answers[idx];
+      const correctAns = q.answer;
+      const userText = userAns !== null ? q.options[userAns] : "선택 안 함";
+      const correctText = q.options[correctAns];
 
-    const userChoice = userAns !== null ? q.options[userAns] : "(무응답)";
-    const correctChoice = q.options[q.answer];
+      if(userAns === correctAns){
+        correct++;
+        resultDiv.innerHTML += `<div>(${idx+1}) ✅ <b>${q.question}</b><br>
+        ▶ 내가 선택한 답: <span style="color:green;">${userText}</span></div><br>`;
+      } else {
+        resultDiv.innerHTML += `<div>(${idx+1}) ❌ <b>${q.question}</b><br>
+        ▶ 내가 선택한 답: <span style="color:red;">${userText}</span><br>
+        💡 정답: <span style="color:green;">${correctText}</span></div><br>`;
+      }
+    });
+    resultDiv.innerHTML += `<h4>총 점수: ${correct} / ${questions.length}</h4>`;
+  }
 
-    const div = document.createElement("div");
-    div.classList.add("question-result");
-    div.style.background = isCorrect ? "#e6ffed" : "#ffe6e6";
-    div.innerHTML = `
-      <strong>${i + 1}. ${q.question}</strong><br>
-      <span>내 답: ${userChoice}</span><br>
-      <span>정답: ${correctChoice}</span><br>
-      <b style="color:${isCorrect ? 'green' : 'red'}">${isCorrect ? '정답 ✅' : '오답 ❌'}</b>
-    `;
-    resultDiv.appendChild(div);
-  });
+  function shuffle(arr){
+    return arr.sort(()=>Math.random()-0.5);
+  }
 
-  const score = document.createElement("h4");
-  score.textContent = `총점: ${correct} / ${questions.length}`;
-  score.style.textAlign = "center";
-  score.style.marginTop = "20px";
-  resultDiv.prepend(score);
-
-  const retryBtn = document.createElement("button");
-  retryBtn.innerText = "다시하기";
-  retryBtn.onclick = () => location.reload();
-  retryBtn.style.display = "block";
-  retryBtn.style.margin = "20px auto";
-  resultDiv.appendChild(retryBtn);
-}
-</script>
-
+  function startTimer(seconds){
+    const timerDiv = document.getElementById("timer");
+    let remaining = seconds;
+    timer = setInterval(()=>{
+      const min = Math.floor(remaining/60);
+      const sec = remaining%60;
+      timerDiv.textContent = `⏱ 남은 시간: ${min}:${sec.toString().padStart(2,"0")}`;
+      if(remaining <= 0){
+        clearInterval(timer);
+        alert("시간 종료! 자동 제출됩니다.");
+        submitExam();
+      }
+      remaining--;
+    },1000);
+  }
+  </script>
 </body>
 </html>
