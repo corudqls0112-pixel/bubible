@@ -218,35 +218,62 @@
     }
   }
 
-  function submitExam(){
-    clearInterval(timer);
-    let correct = 0;
-    const resultDiv = document.getElementById("result");
-    resultDiv.innerHTML = "<h3>📝 결과</h3>";
+  // --- 모의고사 결과 표시 확장 ---
+function submitMockExam() {
+  clearInterval(timerInterval);
+  let correct = 0;
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML = `<h3>결과</h3>`;
 
-    questions.forEach((q,idx)=>{
-      const userAns = answers[idx];
-      const correctAns = q.answer;
-      const userText = userAns !== null ? q.options[userAns] : "선택 안 함";
-      const correctText = q.options[correctAns];
+  questions.forEach((q, i) => {
+    const userAns = userAnswers[i];
+    const isCorrect = userAns === q.answer;
+    if (isCorrect) correct++;
 
-      if(userAns === correctAns){
-        correct++;
-        resultDiv.innerHTML += `<div>(${idx+1}) ✅ <b>${q.question}</b><br>
-        ▶ 내가 선택한 답: <span style="color:green;">${userText}</span></div><br>`;
-      } else {
-        resultDiv.innerHTML += `<div>(${idx+1}) ❌ <b>${q.question}</b><br>
-        ▶ 내가 선택한 답: <span style="color:red;">${userText}</span><br>
-        💡 정답: <span style="color:green;">${correctText}</span></div><br>`;
-      }
-    });
-    resultDiv.innerHTML += `<h4>총 점수: ${correct} / ${questions.length}</h4>`;
-  }
+    const userChoice = userAns !== null ? q.options[userAns] : "(무응답)";
+    const correctChoice = q.options[q.answer];
 
-  function shuffle(arr){
-    return arr.sort(()=>Math.random()-0.5);
-  }
+    // 🔹 각 문항별 결과 표시
+    const questionResult = document.createElement("div");
+    questionResult.classList.add("question-result");
+    questionResult.style.marginBottom = "12px";
+    questionResult.style.padding = "8px";
+    questionResult.style.border = "1px solid #ccc";
+    questionResult.style.borderRadius = "8px";
+    questionResult.style.backgroundColor = isCorrect ? "#e8ffe8" : "#ffe8e8";
 
+    questionResult.innerHTML = `
+      <strong>(${i + 1}) ${q.question}</strong><br>
+      <span>내가 선택한 답: ${userChoice}</span><br>
+      <span>정답: ${correctChoice}</span><br>
+      <span style="font-weight:bold; color:${isCorrect ? 'green' : 'red'};">
+        ${isCorrect ? '정답 ✅' : '오답 ❌'}
+      </span>
+    `;
+
+    resultDiv.appendChild(questionResult);
+  });
+
+  // 🔹 총점 표시
+  const totalScore = document.createElement("h4");
+  totalScore.innerText = `총점: ${correct}/${questions.length}`;
+  totalScore.style.textAlign = "center";
+  totalScore.style.marginTop = "20px";
+  resultDiv.prepend(totalScore);
+
+  // 🔹 다시하기 버튼
+  const retryBtn = document.createElement("button");
+  retryBtn.innerText = "다시하기";
+  retryBtn.onclick = () => location.reload();
+  retryBtn.style.display = "block";
+  retryBtn.style.margin = "20px auto";
+  retryBtn.style.padding = "10px 20px";
+  retryBtn.style.fontSize = "16px";
+  retryBtn.style.borderRadius = "8px";
+  retryBtn.style.backgroundColor = "#4CAF50";
+  retryBtn.style.color = "white";
+  resultDiv.appendChild(retryBtn);
+}
   function startTimer(seconds){
     const timerDiv = document.getElementById("timer");
     let remaining = seconds;
