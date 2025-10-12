@@ -134,7 +134,7 @@ async function loadQuestions(files){
   let loaded=[];
   for(const f of files){
     try{
-      const res = await fetch(`questions/${f}`);
+      const res = await fetch(`./questions/${f}`);
       if(res.ok){
         const txt = await res.text();
         const qs = parseQuestions(txt, f);
