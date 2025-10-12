@@ -7,6 +7,8 @@
 <style>
   body { font-family: 'Noto Sans KR', sans-serif; background-color: #e6f0ff; margin:0; padding:20px; text-align:center;}
   h1 { color:#002366; font-size:2em; margin-bottom:10px;}
+  button.option-btn { margin:5px; padding:10px 16px; font-size:1em; border:none; border-radius:10px; cursor:pointer; background-color:#0056d6; color:white; transition:0.3s;}
+  button.option-btn.selected { background-color:#003c9d;}
   button { margin:5px; padding:10px 16px; font-size:1em; border:none; border-radius:10px; cursor:pointer; background-color:#0056d6; color:white; transition:0.3s;}
   button:hover { background-color:#003c9d;}
   #question-container { margin-top:20px; padding:20px; background:white; border-radius:15px; box-shadow:0 4px 8px rgba(0,0,0,0.1); display:none; max-width:600px; margin-left:auto; margin-right:auto;}
@@ -18,8 +20,8 @@
     left: 0;
     width: 100%;
     padding: 8px 0;
-    background-color: rgba(0, 0, 0, 0.2); /* 반투명 배경 */
-    color: #000; /* 글씨 색 */
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #000;
     font-size: 0.9em;
     text-align: center;
     z-index: 999;
@@ -54,13 +56,11 @@
   <div id="result"></div>
 </div>
 
-<!-- 출처 바닥글 -->
 <div id="footer">📝 81인 교수들이 출제한 백석성경문제집 문제들로만 구성되어 있습니다.</div>
 
 <script>
 let questions=[], currentIndex=0, mode='', answers=[], timer, timeLeft=0;
 
-// 성경 범위
 const ranges = [
   {name:"고린도전서", file:"1.txt"},
   {name:"고린도후서", file:"2.txt"},
@@ -156,6 +156,15 @@ async function loadQuestions(files){
       }
     }catch(e){console.log(e);}
   }
+
+  // 예시: 복수 정답 문제 직접 추가 (53번)
+  loaded.push({
+    question: "요한계시록 15장에서 짐승과 그의 우상과 그의 이름의 수를 이기고 벗어난 자들이 유리 바다 가에 서서 부르는 노래는 무슨 노래인가?(두 가지)",
+    options:["인자의 노래","어린 양의 노래","새 노래","승리의 노래","십사만사천의 노래","모세의 노래"],
+    answer:[1,5], // 0-based 인덱스
+    range:"요한계시록"
+  });
+
   return loaded;
 }
 
@@ -166,7 +175,8 @@ function parseQuestions(text, rangeName){
   let current={options:[]};
   lines.forEach(line=>{
     if(line.startsWith("답:")){
-      current.answer = parseInt(line.replace("답:","").trim())-1;
+      const ans = line.replace("답:","").split(",").map(x=>parseInt(x.trim())-1);
+      current.answer = ans;
       current.range = rangeName;
       qs.push(current);
       current={options:[]};
@@ -182,45 +192,59 @@ function parseQuestions(text, rangeName){
 // 문제 표시
 function showQuestion(){
   const q = questions[currentIndex];
+  q.userSelected = q.userSelected || [];
   document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
   const optionsDiv = document.getElementById("options");
   optionsDiv.innerHTML="";
   q.options.forEach((opt,i)=>{
     const btn = document.createElement("button");
-    btn.innerText=opt;
+    btn.innerText = opt;
+    btn.className = "option-btn";
+    if(q.userSelected.includes(i)) btn.classList.add("selected");
     btn.onclick = ()=>{
-      selectAnswer(i);
-      if(mode==="mock"){
+      const idx = q.userSelected.indexOf(i);
+      if(idx>=0){
+        q.userSelected.splice(idx,1);
+        btn.classList.remove("selected");
+      } else {
+        q.userSelected.push(i);
+        btn.classList.add("selected");
+      }
+
+      if(mode==="mock" && q.answer.length===1){ 
+        answers[currentIndex]=i;
         nextQuestion();
+      } else if(mode==="practice"){ 
+        checkAnswer(q);
       }
     };
     optionsDiv.appendChild(btn);
   });
   document.getElementById("result").innerText="";
-  document.getElementById("next-btn").style.display= mode==="practice"? "inline":"inline";
+  document.getElementById("next-btn").style.display= "inline";
 }
 
-// 답 선택
-function selectAnswer(i){
-  const q = questions[currentIndex];
-  if(mode==="practice"){
-    if(i===q.answer){
-      document.getElementById("result").innerHTML=`✅ 정답입니다!<br>정답: ${q.options[q.answer]}`;
-    }else{
-      document.getElementById("result").innerHTML=`❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
-    }
+// 정답 체크
+function checkAnswer(q){
+  let isCorrect=false;
+  if(Array.isArray(q.answer)){
+    const sortedUser = (q.userSelected||[]).sort().toString();
+    const sortedAns = q.answer.sort().toString();
+    isCorrect = sortedUser === sortedAns;
   } else {
-    answers[currentIndex]=i;
+    isCorrect = q.userSelected && q.userSelected[0] === q.answer;
+  }
+
+  if(isCorrect){
+    document.getElementById("result").innerHTML = `✅ 정답입니다!<br>정답: ${q.answer.map(i=>q.options[i]).join(", ")}`;
+  } else {
+    document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${q.answer.map(i=>q.options[i]).join(", ")}`;
   }
 }
 
 // 이전/다음
-function nextQuestion(){
-  if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); }
-}
-function prevQuestion(){
-  if(currentIndex>0){ currentIndex--; showQuestion(); }
-}
+function nextQuestion(){ if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); }}
+function prevQuestion(){ if(currentIndex>0){ currentIndex--; showQuestion(); }}
 
 // 모의고사 결과
 function showMockResult() {
@@ -230,15 +254,22 @@ function showMockResult() {
 
   questions.forEach((q, i) => {
     const correctIndex = q.answer;
-    const userIndex = answers[i];
-    const isCorrect = userIndex === correctIndex;
-    if (isCorrect) score++;
+    const userIndex = q.userSelected;
+    let isCorrect=false;
+    if(Array.isArray(correctIndex)){
+      const sortedUser = (userIndex||[]).sort().toString();
+      const sortedAns = correctIndex.sort().toString();
+      isCorrect = sortedUser === sortedAns;
+    } else {
+      isCorrect = userIndex && userIndex[0] === correctIndex;
+    }
+    if(isCorrect) score++;
 
     html += `
       <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
         <p><strong>문제 ${i + 1}:</strong> ${q.question}</p>
-        <p>선택: ${userIndex !== undefined ? q.options[userIndex] : "-"} ${isCorrect ? "✅" : "❌"}</p>
-        <p>정답: ${q.options[correctIndex]}</p>
+        <p>선택: ${(userIndex && userIndex.map(x=>q.options[x]).join(", ")) || "-"} ${isCorrect?"✅":"❌"}</p>
+        <p>정답: ${correctIndex.map(x=>q.options[x]).join(", ")}</p>
         ${q.explanation ? `<p>해설: ${q.explanation}</p>` : ""}
       </div>
     `;
