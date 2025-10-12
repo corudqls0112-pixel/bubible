@@ -165,39 +165,156 @@ function parseQuestions(text, rangeName){
   return qs;
 }
 
-// 문제 표시
-function showQuestion(){
+// ✅ 문제 데이터 예시
+const questions = [
+  {
+    question: "요한계시록 15장에서 짐승과 그의 우상과 그의 이름의 수를 이기고 벗어난 자들이 유리 바다 가에 서서 부르는 노래는 무슨 노래인가?(두 가지)",
+    options: [
+      "인자의 노래",
+      "어린 양의 노래",
+      "새 노래",
+      "승리의 노래",
+      "십사만사천의 노래",
+      "모세의 노래"
+    ],
+    answer: [1, 5] // 2번, 6번 (index 기준이므로 0부터 시작)
+  },
+  // 다른 문제들...
+];
+
+// ✅ 전역 변수
+let currentIndex = 0;
+let answers = [];
+let mode = "practice"; // "exam"이면 모의고사 모드
+
+// ✅ 문제 표시 함수
+function showQuestion() {
   const q = questions[currentIndex];
-  document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
-  const optionsDiv = document.getElementById("options");
-  optionsDiv.innerHTML="";
-  q.options.forEach((opt,i)=>{
-    const btn = document.createElement("button");
-    btn.innerText=opt;
-    btn.onclick = ()=>{
-      selectAnswer(i);
-      if(mode==="mock"){
-        nextQuestion();
-      }
-    };
-    optionsDiv.appendChild(btn);
+  let html = `<h3>${currentIndex + 1}. ${q.question}</h3>`;
+  q.options.forEach((opt, i) => {
+    html += `
+      <button onclick="selectAnswer(${i})" id="opt${i}" class="option-btn">
+        ${i + 1}. ${opt}
+      </button><br>
+    `;
   });
-  document.getElementById("result").innerText="";
-  document.getElementById("next-btn").style.display= mode==="practice"? "inline":"inline";
+  document.getElementById("question").innerHTML = html;
+  document.getElementById("result").innerHTML = "";
 }
 
-// 답 선택
-function selectAnswer(i){
+// ✅ 답 선택 함수 (복수 정답 지원)
+function selectAnswer(i) {
   const q = questions[currentIndex];
-  if(mode==="practice"){
-    if(i===q.answer){
-      document.getElementById("result").innerHTML=`✅ 정답입니다!<br>정답: ${q.options[q.answer]}`;
-    }else{
-      document.getElementById("result").innerHTML=`❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
+
+  // 정답이 배열이면 복수정답 문제
+  if (Array.isArray(q.answer)) {
+    if (!answers[currentIndex]) answers[currentIndex] = [];
+    const selected = answers[currentIndex];
+
+    // 이미 선택한 보기 다시 클릭 시 선택 취소
+    if (selected.includes(i)) {
+      answers[currentIndex] = selected.filter(x => x !== i);
+      document.getElementById(`opt${i}`).style.background = "";
+    } else {
+      answers[currentIndex].push(i);
+      document.getElementById(`opt${i}`).style.background = "#d0f0c0";
     }
+
+    // 연습 모드에서는 정답 즉시 확인
+    if (mode === "practice" && answers[currentIndex].length === q.answer.length) {
+      checkAnswer();
+    }
+
   } else {
-    answers[currentIndex]=i;
+    // 단일 정답 문제
+    answers[currentIndex] = i;
+    if (mode === "practice") {
+      checkAnswer();
+    }
   }
+}
+
+// ✅ 정답 확인 함수
+function checkAnswer() {
+  const q = questions[currentIndex];
+  const userAnswer = answers[currentIndex];
+
+  let isCorrect = false;
+
+  if (Array.isArray(q.answer)) {
+    // 복수 정답 비교
+    isCorrect =
+      q.answer.length === userAnswer.length &&
+      q.answer.every(a => userAnswer.includes(a));
+  } else {
+    isCorrect = userAnswer === q.answer;
+  }
+
+  if (isCorrect) {
+    document.getElementById("result").innerHTML =
+      `✅ 정답입니다!<br>정답: ${q.answer.map(a => q.options[a]).join(", ")}`;
+  } else {
+    document.getElementById("result").innerHTML =
+      `❌ 오답입니다.<br>정답: ${Array.isArray(q.answer)
+        ? q.answer.map(a => q.options[a]).join(", ")
+        : q.options[q.answer]}`;
+  }
+}
+
+// ✅ 다음 / 이전 문제 이동
+function nextQuestion() {
+  if (currentIndex < questions.length - 1) {
+    currentIndex++;
+    showQuestion();
+  }
+}
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    showQuestion();
+  }
+}
+
+// ✅ 제출 (모의고사용)
+function submitExam() {
+  let correctCount = 0;
+  let resultHTML = "<h3>📘 결과 확인</h3>";
+
+  questions.forEach((q, idx) => {
+    const userAns = answers[idx];
+    let correct = false;
+
+    if (Array.isArray(q.answer)) {
+      correct =
+        userAns &&
+        q.answer.length === userAns.length &&
+        q.answer.every(a => userAns.includes(a));
+    } else {
+      correct = userAns === q.answer;
+    }
+
+    if (correct) correctCount++;
+
+    resultHTML += `
+      <p>
+        <strong>${idx + 1}. ${q.question}</strong><br>
+        ✅ 정답: ${Array.isArray(q.answer)
+          ? q.answer.map(a => q.options[a]).join(", ")
+          : q.options[q.answer]}<br>
+        📝 내가 선택한 답: ${
+          userAns
+            ? Array.isArray(userAns)
+              ? userAns.map(a => q.options[a]).join(", ")
+              : q.options[userAns]
+            : "선택 안 함"
+        }<br>
+        ${correct ? "✅ 맞음" : "❌ 틀림"}
+      </p>
+    `;
+  });
+
+  resultHTML += `<h4>총 점수: ${correctCount} / ${questions.length}</h4>`;
+  document.getElementById("question").innerHTML = resultHTML;
 }
 
 // 이전/다음
