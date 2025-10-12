@@ -209,22 +209,35 @@ function prevQuestion(){
 }
 
 // 모의고사 결과
-function showMockResult(){
+function showMockResult() {
   clearInterval(timer);
-  let score=0, html="<h3>결과</h3>";
-  questions.forEach((q,i)=>{
-    const correctIndex = q.answer;
-    const user = answers[i];
-    if(user===correctIndex) score++;
-    html+=`<p>${i+1}. 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[correctIndex]}</p>`;
+  let score = 0;
+  let html = "<h3>결과</h3>";
+
+  questions.forEach((q, i) => {
+    const correctIndex = q.answer; // 정답 인덱스
+    const userIndex = answers[i];   // 사용자가 선택한 인덱스
+    const isCorrect = userIndex === correctIndex;
+    if (isCorrect) score++;
+
+    html += `
+      <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
+        <p><strong>문제 ${i + 1}:</strong> ${q.question}</p>
+        <p>선택: ${userIndex !== undefined ? q.options[userIndex] : "-"} ${isCorrect ? "✅" : "❌"}</p>
+        <p>정답: ${q.options[correctIndex]}</p>
+        ${q.explanation ? `<p>해설: ${q.explanation}</p>` : ""}
+      </div>
+    `;
   });
-  html=`<h2>총점: ${Math.round(score/questions.length*100)}</h2>`+html;
-  document.getElementById("question").innerHTML=html;
-  document.getElementById("options").innerHTML="";
-  document.getElementById("prev-btn").style.display="none";
-  document.getElementById("next-btn").style.display="none";
-  document.getElementById("submit-btn").style.display="none";
-  document.getElementById("timer").innerText="";
+
+  html = `<h2>총점: ${Math.round(score / questions.length * 100)}</h2>` + html;
+
+  document.getElementById("question").innerHTML = html;
+  document.getElementById("options").innerHTML = "";
+  document.getElementById("prev-btn").style.display = "none";
+  document.getElementById("next-btn").style.display = "none";
+  document.getElementById("submit-btn").style.display = "none";
+  document.getElementById("timer").innerText = "";
 }
 
 // 타이머
