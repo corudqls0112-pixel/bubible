@@ -41,7 +41,6 @@
   <button id="submit-btn" style="display:none;">제출하기</button>
   <div id="result"></div>
 </div>
-
 <script>
 let questions=[], currentIndex=0, mode='', answers=[], timer, timeLeft=0;
 
@@ -69,7 +68,6 @@ const ranges = [
   {name:"유다서", file:"20.txt"},
   {name:"요한계시록", file:"21.txt"},
 ];
-
 // 버튼 이벤트
 document.getElementById("practice-btn").onclick = ()=> showRangeSelection();
 document.getElementById("mock-btn").onclick = ()=> startMode("mock");
@@ -78,7 +76,6 @@ document.getElementById("next-btn").onclick = nextQuestion;
 document.getElementById("prev-btn").onclick = prevQuestion;
 document.getElementById("submit-btn").onclick = showMockResult;
 document.getElementById("range-back").onclick = ()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";}
-
 // 범위 선택 UI
 function showRangeSelection(){
   document.getElementById("home-screen").style.display="none";
@@ -92,7 +89,6 @@ function showRangeSelection(){
   });
   document.getElementById("range-selection").style.display="block";
 }
-
 // 시작
 async function startMode(selectedMode, range=null){
   mode=selectedMode;
@@ -164,7 +160,6 @@ function parseQuestions(text, rangeName){
   });
   return qs;
 }
-
 // ✅ 문제 표시 함수 (연습모드, 모의고사 공통)
 function showQuestion(question) {
   const questionContainer = document.getElementById("question-container");
@@ -186,7 +181,6 @@ function showQuestion(question) {
   `;
   document.getElementById("result").innerHTML = "";
 }
-
 // ✅ 답 선택 (단일 + 다중 정답 모두 처리)
 function selectAnswer(i) {
   const q = questions[currentIndex];
@@ -236,7 +230,6 @@ function selectAnswer(i) {
     }
   }
 }
-
 // 이전/다음
 function nextQuestion(){
   if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); }
