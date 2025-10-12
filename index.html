@@ -165,73 +165,29 @@ function parseQuestions(text, rangeName){
   return qs;
 }
 
-// 문제 표시
-// 문제 표시 함수 (연습모드, 모의고사 공통 사용)
+// ✅ 문제 표시 함수 (연습모드, 모의고사 공통)
 function showQuestion(question) {
   const questionContainer = document.getElementById("question-container");
+  const correctAnswers = question.answer
+    .toString()
+    .split(",")
+    .map(a => a.trim()); // ["2","6"]
+
   questionContainer.innerHTML = `
     <h3>${question.number}. ${question.text}</h3>
     ${question.options
       .map(
         (opt, i) => `
-        <button class="option-btn" data-index="${i + 1}">
+        <button class="option-btn" onclick="selectAnswer(${i + 1})">
           ${i + 1}. ${opt}
         </button>`
       )
       .join("")}
   `;
-
-  const correctAnswers = question.answer
-    .split(",")
-    .map(a => a.trim()); // ["2", "6"] 형태
-
-  const buttons = questionContainer.querySelectorAll(".option-btn");
-  let selectedAnswers = [];
-
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const idx = btn.dataset.index;
-
-      // 다중정답이면 여러개 선택 허용
-      if (correctAnswers.length > 1) {
-        if (selectedAnswers.includes(idx)) {
-          selectedAnswers = selectedAnswers.filter(a => a !== idx);
-          btn.classList.remove("selected");
-        } else {
-          selectedAnswers.push(idx);
-          btn.classList.add("selected");
-        }
-      } else {
-        // 단일 정답 모드
-        selectedAnswers = [idx];
-        buttons.forEach(b => b.classList.remove("selected"));
-        btn.classList.add("selected");
-      }
-
-      // 즉시 채점 (연습모드일 때만)
-      if (mode === "practice") {
-        checkAnswer(selectedAnswers, correctAnswers);
-      }
-    });
-  });
+  document.getElementById("result").innerHTML = "";
 }
 
-// 채점 함수 (공통)
-function checkAnswer(selected, correct) {
-  const questionContainer = document.getElementById("question-container");
-
-  // 정답 배열과 선택 배열을 비교
-  const isCorrect =
-    selected.length === correct.length &&
-    selected.every(a => correct.includes(a));
-
-  if (isCorrect) {
-    questionContainer.innerHTML += `<p style="color:green;">✅ 정답입니다!</p>`;
-  } else {
-    questionContainer.innerHTML += `<p style="color:red;">❌ 오답입니다. 정답: ${correct.join(", ")}번</p>`;
-  }
-}
-// 답 선택 (단일 + 다중 정답 모두 처리)
+// ✅ 답 선택 (단일 + 다중 정답 모두 처리)
 function selectAnswer(i) {
   const q = questions[currentIndex];
   const correctAnswers = q.answer
@@ -241,21 +197,23 @@ function selectAnswer(i) {
 
   if (!answers[currentIndex]) answers[currentIndex] = [];
 
+  const optionButtons = document.querySelectorAll(".option-btn");
+
   // 다중 정답일 경우 여러 개 선택 허용
   if (correctAnswers.length > 1) {
     const idx = answers[currentIndex].indexOf(i);
     if (idx > -1) {
       answers[currentIndex].splice(idx, 1); // 이미 선택 → 해제
+      optionButtons[i - 1].classList.remove("selected");
     } else {
       answers[currentIndex].push(i); // 선택 추가
+      optionButtons[i - 1].classList.add("selected");
     }
-
-    // 선택된 버튼 시각 효과
-    const optionButtons = document.querySelectorAll(".option-btn");
-    optionButtons[i].classList.toggle("selected");
   } else {
-    // 단일 정답 (기존 방식 유지)
+    // 단일 정답 (기존 방식)
     answers[currentIndex] = [i];
+    optionButtons.forEach(btn => btn.classList.remove("selected"));
+    optionButtons[i - 1].classList.add("selected");
   }
 
   // 연습모드일 경우 즉시 채점
@@ -267,10 +225,14 @@ function selectAnswer(i) {
 
     if (isCorrect) {
       document.getElementById("result").innerHTML =
-        `✅ 정답입니다!<br>정답: ${correctAnswers.map(n => q.options[parseInt(n) - 1]).join(", ")}`;
+        `✅ 정답입니다!<br>정답: ${correctAnswers
+          .map(n => q.options[parseInt(n) - 1])
+          .join(", ")}`;
     } else {
       document.getElementById("result").innerHTML =
-        `❌ 오답입니다.<br>정답: ${correctAnswers.map(n => q.options[parseInt(n) - 1]).join(", ")}`;
+        `❌ 오답입니다.<br>정답: ${correctAnswers
+          .map(n => q.options[parseInt(n) - 1])
+          .join(", ")}`;
     }
   }
 }
