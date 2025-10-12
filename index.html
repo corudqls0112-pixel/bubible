@@ -41,6 +41,7 @@
   <button id="submit-btn" style="display:none;">제출하기</button>
   <div id="result"></div>
 </div>
+
 <script>
 let questions=[], currentIndex=0, mode='', answers=[], timer, timeLeft=0;
 
@@ -68,6 +69,7 @@ const ranges = [
   {name:"유다서", file:"20.txt"},
   {name:"요한계시록", file:"21.txt"},
 ];
+
 // 버튼 이벤트
 document.getElementById("practice-btn").onclick = ()=> showRangeSelection();
 document.getElementById("mock-btn").onclick = ()=> startMode("mock");
@@ -76,6 +78,7 @@ document.getElementById("next-btn").onclick = nextQuestion;
 document.getElementById("prev-btn").onclick = prevQuestion;
 document.getElementById("submit-btn").onclick = showMockResult;
 document.getElementById("range-back").onclick = ()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";}
+
 // 범위 선택 UI
 function showRangeSelection(){
   document.getElementById("home-screen").style.display="none";
@@ -89,6 +92,7 @@ function showRangeSelection(){
   });
   document.getElementById("range-selection").style.display="block";
 }
+
 // 시작
 async function startMode(selectedMode, range=null){
   mode=selectedMode;
@@ -130,7 +134,7 @@ async function loadQuestions(files){
   let loaded=[];
   for(const f of files){
     try{
-      const res = await fetch('questions/${f}`);
+      const res = await fetch(`questions/${f}`);
       if(res.ok){
         const txt = await res.text();
         const qs = parseQuestions(txt, f);
@@ -160,76 +164,42 @@ function parseQuestions(text, rangeName){
   });
   return qs;
 }
-// ✅ 문제 표시 함수 (연습모드, 모의고사 공통)
-function showQuestion(question) {
-  const questionContainer = document.getElementById("question-container");
-  const correctAnswers = question.answer
-    .toString()
-    .split(",")
-    .map(a => a.trim()); // ["2","6"]
 
-  questionContainer.innerHTML = `
-    <h3>${question.number}. ${question.text}</h3>
-    ${question.options
-      .map(
-        (opt, i) => `
-        <button class="option-btn" onclick="selectAnswer(${i + 1})">
-          ${i + 1}. ${opt}
-        </button>`
-      )
-      .join("")}
-  `;
-  document.getElementById("result").innerHTML = "";
-}
-// ✅ 답 선택 (단일 + 다중 정답 모두 처리)
-function selectAnswer(i) {
+// 문제 표시
+function showQuestion(){
   const q = questions[currentIndex];
-  const correctAnswers = q.answer
-    .toString()
-    .split(",")
-    .map(a => a.trim()); // ["2", "6"] 또는 ["3"]
+  document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
+  const optionsDiv = document.getElementById("options");
+  optionsDiv.innerHTML="";
+  q.options.forEach((opt,i)=>{
+    const btn = document.createElement("button");
+    btn.innerText=opt;
+    btn.onclick = ()=>{
+      selectAnswer(i);
+      if(mode==="mock"){
+        nextQuestion();
+      }
+    };
+    optionsDiv.appendChild(btn);
+  });
+  document.getElementById("result").innerText="";
+  document.getElementById("next-btn").style.display= mode==="practice"? "inline":"inline";
+}
 
-  if (!answers[currentIndex]) answers[currentIndex] = [];
-
-  const optionButtons = document.querySelectorAll(".option-btn");
-
-  // 다중 정답일 경우 여러 개 선택 허용
-  if (correctAnswers.length > 1) {
-    const idx = answers[currentIndex].indexOf(i);
-    if (idx > -1) {
-      answers[currentIndex].splice(idx, 1); // 이미 선택 → 해제
-      optionButtons[i - 1].classList.remove("selected");
-    } else {
-      answers[currentIndex].push(i); // 선택 추가
-      optionButtons[i - 1].classList.add("selected");
+// 답 선택
+function selectAnswer(i){
+  const q = questions[currentIndex];
+  if(mode==="practice"){
+    if(i===q.answer){
+      document.getElementById("result").innerHTML=`✅ 정답입니다!<br>정답: ${q.options[q.answer]}`;
+    }else{
+      document.getElementById("result").innerHTML=`❌ 오답입니다.<br>정답: ${q.options[q.answer]}`;
     }
   } else {
-    // 단일 정답 (기존 방식)
-    answers[currentIndex] = [i];
-    optionButtons.forEach(btn => btn.classList.remove("selected"));
-    optionButtons[i - 1].classList.add("selected");
-  }
-
-  // 연습모드일 경우 즉시 채점
-  if (mode === "practice") {
-    const selected = answers[currentIndex].map(String);
-    const isCorrect =
-      selected.length === correctAnswers.length &&
-      selected.every(a => correctAnswers.includes(a));
-
-    if (isCorrect) {
-      document.getElementById("result").innerHTML =
-        `✅ 정답입니다!<br>정답: ${correctAnswers
-          .map(n => q.options[parseInt(n) - 1])
-          .join(", ")}`;
-    } else {
-      document.getElementById("result").innerHTML =
-        `❌ 오답입니다.<br>정답: ${correctAnswers
-          .map(n => q.options[parseInt(n) - 1])
-          .join(", ")}`;
-    }
+    answers[currentIndex]=i;
   }
 }
+
 // 이전/다음
 function nextQuestion(){
   if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); }
@@ -239,36 +209,24 @@ function prevQuestion(){
 }
 
 // 모의고사 결과
-function showMockResult() {
+function showMockResult(){
   clearInterval(timer);
-  let score = 0;
-  let html = "<h3>결과</h3>";
-
-  questions.forEach((q, i) => {
-    const correctIndex = q.answer; // 정답 인덱스
-    const userIndex = answers[i];   // 사용자가 선택한 인덱스
-    const isCorrect = userIndex === correctIndex;
-    if (isCorrect) score++;
-
-    html += `
-      <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
-        <p><strong>문제 ${i + 1}:</strong> ${q.question}</p>
-        <p>선택: ${userIndex !== undefined ? q.options[userIndex] : "-"} ${isCorrect ? "✅" : "❌"}</p>
-        <p>정답: ${q.options[correctIndex]}</p>
-        ${q.explanation ? `<p>해설: ${q.explanation}</p>` : ""}
-      </div>
-    `;
+  let score=0, html="<h3>결과</h3>";
+  questions.forEach((q,i)=>{
+    const correctIndex = q.answer;
+    const user = answers[i];
+    if(user===correctIndex) score++;
+    html+=`<p>${i+1}. 선택: ${user!==undefined?q.options[user]:"-"}, 정답: ${q.options[correctIndex]}</p>`;
   });
-
-  html = `<h2>총점: ${Math.round(score / questions.length * 100)}</h2>` + html;
-
-  document.getElementById("question").innerHTML = html;
-  document.getElementById("options").innerHTML = "";
-  document.getElementById("prev-btn").style.display = "none";
-  document.getElementById("next-btn").style.display = "none";
-  document.getElementById("submit-btn").style.display = "none";
-  document.getElementById("timer").innerText = "";
+  html=`<h2>총점: ${Math.round(score/questions.length*100)}</h2>`+html;
+  document.getElementById("question").innerHTML=html;
+  document.getElementById("options").innerHTML="";
+  document.getElementById("prev-btn").style.display="none";
+  document.getElementById("next-btn").style.display="none";
+  document.getElementById("submit-btn").style.display="none";
+  document.getElementById("timer").innerText="";
 }
+
 // 타이머
 function startTimer(seconds){
   timeLeft=seconds;
