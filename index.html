@@ -12,6 +12,18 @@
   #question-container { margin-top:20px; padding:20px; background:white; border-radius:15px; box-shadow:0 4px 8px rgba(0,0,0,0.1); display:none; max-width:600px; margin-left:auto; margin-right:auto;}
   .timer { font-size:1.2em; color:#d9534f; font-weight:bold; margin-bottom:10px;}
   #result { margin-top:10px; font-weight:bold;}
+  #footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px 0;
+    background-color: rgba(0, 0, 0, 0.2); /* 반투명 배경 */
+    color: #000; /* 글씨 색 */
+    font-size: 0.9em;
+    text-align: center;
+    z-index: 999;
+  }
   @media(max-width:600px){ button{width:80%; margin:5px 0; }}
 </style>
 </head>
@@ -41,6 +53,9 @@
   <button id="submit-btn" style="display:none;">제출하기</button>
   <div id="result"></div>
 </div>
+
+<!-- 출처 바닥글 -->
+<div id="footer">📝 81인 교수들이 출제한 백석성경문제집 문제들로만 구성되어 있습니다.</div>
 
 <script>
 let questions=[], currentIndex=0, mode='', answers=[], timer, timeLeft=0;
@@ -115,7 +130,6 @@ async function startMode(selectedMode, range=null){
         selected.push(...shuffleArray(rqs).slice(0,count));
       }
     });
-    // 총 50문제 맞추기
     while(selected.length<50){
       const remaining = allQuestions.filter(q=>!selected.includes(q));
       if(remaining.length===0) break;
@@ -215,8 +229,8 @@ function showMockResult() {
   let html = "<h3>결과</h3>";
 
   questions.forEach((q, i) => {
-    const correctIndex = q.answer; // 정답 인덱스
-    const userIndex = answers[i];   // 사용자가 선택한 인덱스
+    const correctIndex = q.answer;
+    const userIndex = answers[i];
     const isCorrect = userIndex === correctIndex;
     if (isCorrect) score++;
 
