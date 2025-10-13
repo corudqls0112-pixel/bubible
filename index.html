@@ -148,19 +148,13 @@ async function startMode(selectedMode, range=null){
   showQuestion();
 }
 
+// 문제 로드
 async function loadQuestions(files){
   let loaded=[];
+  const basePath = window.location.href.substring(0, window.location.href.lastIndexOf("/"));
   for(const f of files){
     try{
-      const res = await fetch(`questions/${f}`);
-      if(res.ok){
-        const txt = await res.text();
-        loaded.push(...parseQuestions(txt, f));
-      }
-    }catch(e){console.error(e);}
-  }
-  return loaded;
-}
+      const res = await fetch(`${basePath}/questions/${f}`);
 
 function parseQuestions(text, file){
   const lines = text.split("\n").map(x=>x.trim()).filter(x=>x);
