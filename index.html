@@ -50,19 +50,101 @@
 <script>
 let questions=[], currentIndex=0, mode='', answers=[], timer, timeLeft=0;
 
-const ranges=[
-  {name:"요한계시록", file:"21.txt"} // 테스트용
+const ranges = [
+  {name:"고린도전서", file:"1.txt"},
+  {name:"고린도후서", file:"2.txt"},
+  {name:"갈라디아서", file:"3.txt"},
+  {name:"에베소서", file:"4.txt"},
+  {name:"빌립보서", file:"5.txt"},
+  {name:"골로새서", file:"6.txt"},
+  {name:"데살로니가전서", file:"7.txt"},
+  {name:"데살로니가후서", file:"8.txt"},
+  {name:"디모데전서", file:"9.txt"},
+  {name:"디모데후서", file:"10.txt"},
+  {name:"디도서", file:"11.txt"},
+  {name:"빌레몬서", file:"12.txt"},
+  {name:"히브리서", file:"13.txt"},
+  {name:"야고보서", file:"14.txt"},
+  {name:"베드로전서", file:"15.txt"},
+  {name:"베드로후서", file:"16.txt"},
+  {name:"요한일서", file:"17.txt"},
+  {name:"요한이서", file:"18.txt"},
+  {name:"요한삼서", file:"19.txt"},
+  {name:"유다서", file:"20.txt"},
+  {name:"요한계시록", file:"21.txt"},
 ];
 
 // 버튼 이벤트
-document.getElementById("practice-btn").onclick=()=>showRangeSelection();
-document.getElementById("mock-btn").onclick=()=>startMode("mock");
-document.getElementById("home-btn").onclick=goHome;
-document.getElementById("next-btn").onclick=nextQuestion;
-document.getElementById("prev-btn").onclick=prevQuestion;
-document.getElementById("submit-btn").onclick=showMockResult;
-document.getElementById("range-back").onclick=()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";}
+document.getElementById("practice-btn").onclick = ()=> showRangeSelection();
+document.getElementById("mock-btn").onclick = ()=> startMode("mock");
+document.getElementById("home-btn").onclick = goHome;
+document.getElementById("next-btn").onclick = nextQuestion;
+document.getElementById("prev-btn").onclick = prevQuestion;
+document.getElementById("submit-btn").onclick = showMockResult;
+document.getElementById("range-back").onclick = ()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";}
 
+// 범위 선택 UI
+function showRangeSelection(){
+  document.getElementById("home-screen").style.display="none";
+  const container = document.getElementById("range-buttons");
+  container.innerHTML="";
+  ranges.forEach((r,i)=>{
+    const btn = document.createElement("button");
+    btn.innerText=r.name;
+    btn.onclick = ()=> startMode("practice", r);
+    container.appendChild(btn);
+  });
+  document.getElementById("range-selection").style.display="block";
+}
+
+// 시작
+async function startMode(selectedMode, range=null){
+  mode=selectedMode;
+  document.getElementById("home-btn").style.display="block";
+  document.getElementById("home-screen").style.display="none";
+  document.getElementById("range-selection").style.display="none";
+  document.getElementById("question-container").style.display="block";
+  answers=[];
+  currentIndex=0;
+
+  if(mode==="practice" && range){
+    questions = await loadQuestions([range.file]);
+  } else if(mode==="mock"){
+    const allQuestions = await loadQuestions(ranges.map(r=>r.file));
+    let selected=[];
+    ranges.forEach(r=>{
+      const rqs = allQuestions.filter(q=>q.range===r.name);
+      if(rqs.length>0){
+        const count = Math.min(rqs.length, Math.floor(Math.random()*5)+1);
+        selected.push(...shuffleArray(rqs).slice(0,count));
+      }
+    });
+    while(selected.length<50){
+      const remaining = allQuestions.filter(q=>!selected.includes(q));
+      if(remaining.length===0) break;
+      selected.push(remaining[Math.floor(Math.random()*remaining.length)]);
+    }
+    questions = shuffleArray(selected).slice(0,50);
+    startTimer(3000); // 50분
+    document.getElementById("prev-btn").style.display="inline";
+    document.getElementById("submit-btn").style.display="inline";
+  }
+  showQuestion();
+}
+
+// 문제 불러오기
+async function loadQuestions(files){
+  let loaded=[];
+  for(const f of files){
+    try{
+      const res = await fetch(`questions/${f}`);
+      if(res.ok){
+        const txt = await res.text();
+        const qs = parseQuestions(txt, f);
+        loaded.push(...qs);
+      }
+    }catch(e){console.log(e);}
+  }
 // 범위 선택
 function showRangeSelection(){
   document.getElementById("home-screen").style.display="none";
