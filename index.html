@@ -195,43 +195,59 @@ function parseQuestions(text, rangeName){
 }
 
 // 문제 표시
-function showQuestion(){
+function showQuestion() {
   const q = questions[currentIndex];
   q.userSelected = q.userSelected || [];
-  document.getElementById("question").innerText = `(${currentIndex+1}) ${q.question}`;
+  document.getElementById("question").innerText = `(${currentIndex + 1}) ${q.question}`;
   const optionsDiv = document.getElementById("options");
-  optionsDiv.innerHTML="";
-  q.options.forEach((opt,i)=>{
+  optionsDiv.innerHTML = "";
+
+  q.options.forEach((opt, i) => {
     const btn = document.createElement("button");
     btn.innerText = opt;
     btn.className = "option-btn";
-    if(q.userSelected.includes(i)) btn.classList.add("selected");
-    btn.onclick = ()=>{
-      const idx = q.userSelected.indexOf(i);
-      if(idx>=0){
-        q.userSelected.splice(idx,1);
-        btn.classList.remove("selected");
-      } else {
-        q.userSelected.push(i);
-        btn.classList.add("selected");
-      }
+    if (q.userSelected.includes(i)) btn.classList.add("selected");
 
-      if(Array.isArray(q.answer)){
-        // 복수 정답 문제
-        if(q.userSelected.length===q.answer.length){
-          if(mode==="practice"){ checkAnswer(q); }
-          else if(mode==="mock"){ answers[currentIndex] = [...q.userSelected]; nextQuestion(); }
+    btn.onclick = () => {
+      // ✅ 복수정답 문제일 때만 여러 개 선택 가능
+      if (Array.isArray(q.answer)) {
+        const idx = q.userSelected.indexOf(i);
+        if (idx >= 0) {
+          q.userSelected.splice(idx, 1);
+          btn.classList.remove("selected");
+        } else {
+          q.userSelected.push(i);
+          btn.classList.add("selected");
+        }
+
+        // 복수정답 문제는 두 개 선택 후 자동 채점
+        if (q.userSelected.length === q.answer.length) {
+          if (mode === "practice") checkAnswer(q);
+          else if (mode === "mock") {
+            answers[currentIndex] = [...q.userSelected];
+            nextQuestion();
+          }
         }
       } else {
-        // 단일 정답 문제
-        if(mode==="practice"){ checkAnswer(q); }
-        else if(mode==="mock"){ answers[currentIndex]=[i]; nextQuestion(); }
+        // ✅ 단일정답 문제 → 하나만 선택되게 함
+        q.userSelected = [i];
+        document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+
+        if (mode === "practice") {
+          checkAnswer(q); // 바로 채점
+        } else if (mode === "mock") {
+          answers[currentIndex] = [i];
+          nextQuestion();
+        }
       }
     };
+
     optionsDiv.appendChild(btn);
   });
-  document.getElementById("result").innerText="";
-  document.getElementById("next-btn").style.display= "inline";
+
+  document.getElementById("result").innerText = "";
+  document.getElementById("next-btn").style.display = "inline";
 }
 
 // ✅ 정답 체크 (복수/단일 모두 정상)
