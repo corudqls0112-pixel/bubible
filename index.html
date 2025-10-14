@@ -236,23 +236,25 @@ function showQuestion(){
 
 // ✅ 정답 체크 (복수/단일 모두 정상)
 function checkAnswer(q){
-  let isCorrect=false;
-  if(Array.isArray(q.answer)){
-    const sortedUser = (q.userSelected||[]).sort().toString();
-    const sortedAns = q.answer.sort().toString();
+  let isCorrect = false;
+  if (Array.isArray(q.answer)) {
+    const sortedUser = [...(q.userSelected || [])].sort().toString();
+    const sortedAns = [...q.answer].sort().toString();  // ← 이 부분 수정!
     isCorrect = sortedUser === sortedAns;
   } else {
     isCorrect = q.userSelected && q.userSelected[0] === q.answer;
   }
 
   const correctText = Array.isArray(q.answer)
-    ? q.answer.map(i=>q.options[i]).join(", ")
+    ? q.answer.map(i => q.options[i]).join(", ")
     : q.options[q.answer];
 
-  if(isCorrect){
-    document.getElementById("result").innerHTML = `✅ 정답입니다!<br>정답: ${correctText}`;
+  if (isCorrect) {
+    document.getElementById("result").innerHTML =
+      `✅ 정답입니다!<br>정답: ${correctText}`;
   } else {
-    document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${correctText}`;
+    document.getElementById("result").innerHTML =
+      `❌ 오답입니다.<br>정답: ${correctText}`;
   }
 }
 
@@ -271,18 +273,13 @@ function showMockResult() {
     const userIndex = q.userSelected || [];
     let isCorrect=false;
 
-    if(Array.isArray(correctIndex)){
-      const sortedUser = userIndex.sort().toString();
-      const sortedAns = correctIndex.sort().toString();
-      isCorrect = sortedUser === sortedAns;
-    } else {
-      isCorrect = userIndex[0] === correctIndex;
-    }
-    if(isCorrect) score++;
-
-    const correctText = Array.isArray(correctIndex)
-      ? correctIndex.map(x=>q.options[x]).join(", ")
-      : q.options[correctIndex];
+   if (Array.isArray(correctIndex)) {
+  const sortedUser = [...userIndex].sort().toString();
+  const sortedAns = [...correctIndex].sort().toString();  // ← 수정!
+  isCorrect = sortedUser === sortedAns;
+} else {
+  isCorrect = userIndex[0] === correctIndex;
+}
 
     html += `
       <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
