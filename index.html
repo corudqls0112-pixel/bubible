@@ -271,20 +271,26 @@ function showMockResult() {
   questions.forEach((q, i) => {
     const correctIndex = q.answer;
     const userIndex = q.userSelected || [];
-    let isCorrect=false;
+    let isCorrect = false;
 
-   if (Array.isArray(correctIndex)) {
-  const sortedUser = [...userIndex].sort().toString();
-  const sortedAns = [...correctIndex].sort().toString();  // ← 수정!
-  isCorrect = sortedUser === sortedAns;
-} else {
-  isCorrect = userIndex[0] === correctIndex;
-}
+    if (Array.isArray(correctIndex)) {
+      const sortedUser = [...userIndex].sort().toString();
+      const sortedAns = [...correctIndex].sort().toString();
+      isCorrect = sortedUser === sortedAns;
+    } else {
+      isCorrect = userIndex[0] === correctIndex;
+    }
+
+    if (isCorrect) score++;
+
+    const correctText = Array.isArray(correctIndex)
+      ? correctIndex.map(x => q.options[x]).join(", ")
+      : q.options[correctIndex];
 
     html += `
       <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
         <p><strong>문제 ${i + 1}:</strong> ${q.question}</p>
-        <p>선택: ${(userIndex.map(x=>q.options[x]).join(", ")) || "-"} ${isCorrect?"✅":"❌"}</p>
+        <p>선택: ${(userIndex.map(x=>q.options[x]).join(", ")) || "-"} ${isCorrect ? "✅" : "❌"}</p>
         <p>정답: ${correctText}</p>
       </div>
     `;
@@ -295,7 +301,7 @@ function showMockResult() {
 
   const questionDiv = document.getElementById("question");
   questionDiv.innerHTML = "";
-  setTimeout(()=>{ questionDiv.innerHTML = resultHTML; }, 50);
+  setTimeout(() => { questionDiv.innerHTML = resultHTML; }, 50);
 
   document.getElementById("options").innerHTML = "";
   document.getElementById("prev-btn").style.display = "none";
