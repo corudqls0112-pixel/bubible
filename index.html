@@ -92,14 +92,17 @@ document.getElementById("home-btn").onclick = goHome;
 document.getElementById("next-btn").onclick = nextQuestion;
 document.getElementById("prev-btn").onclick = prevQuestion;
 document.getElementById("submit-btn").onclick = showMockResult;
-document.getElementById("range-back").onclick = ()=>{document.getElementById("range-selection").style.display="none";document.getElementById("home-screen").style.display="block";}
+document.getElementById("range-back").onclick = ()=>{
+  document.getElementById("range-selection").style.display="none";
+  document.getElementById("home-screen").style.display="block";
+}
 
 // 범위 선택 UI
 function showRangeSelection(){
   document.getElementById("home-screen").style.display="none";
   const container = document.getElementById("range-buttons");
   container.innerHTML="";
-  ranges.forEach((r,i)=>{
+  ranges.forEach((r)=>{
     const btn = document.createElement("button");
     btn.innerText=r.name;
     btn.onclick = ()=> startMode("practice", r);
@@ -148,13 +151,15 @@ async function loadQuestions(files){
   let loaded=[];
   for(const f of files){
     try{
-      const res = await fetch(`questions/${f}`);
+      const res = await fetch(`./questions/${f}`);
       if(res.ok){
         const txt = await res.text();
         const qs = parseQuestions(txt, f);
         loaded.push(...qs);
+      } else {
+        console.error("파일 로드 실패:", f, res.status);
       }
-    }catch(e){console.log(e);}
+    }catch(e){ console.error("파일 로드 실패:", f, e); }
   }
 
   // 복수 정답 문제 직접 추가
@@ -220,7 +225,7 @@ function showQuestion(){
       } else {
         // 단일 정답 문제
         if(mode==="practice"){ checkAnswer(q); }
-        else if(mode==="mock"){ answers[currentIndex]=i; nextQuestion(); }
+        else if(mode==="mock"){ answers[currentIndex]=[i]; nextQuestion(); }
       }
     };
     optionsDiv.appendChild(btn);
@@ -229,7 +234,7 @@ function showQuestion(){
   document.getElementById("next-btn").style.display= "inline";
 }
 
-// 정답 체크
+// ✅ 정답 체크 (복수/단일 모두 정상)
 function checkAnswer(q){
   let isCorrect=false;
   if(Array.isArray(q.answer)){
@@ -240,10 +245,14 @@ function checkAnswer(q){
     isCorrect = q.userSelected && q.userSelected[0] === q.answer;
   }
 
+  const correctText = Array.isArray(q.answer)
+    ? q.answer.map(i=>q.options[i]).join(", ")
+    : q.options[q.answer];
+
   if(isCorrect){
-    document.getElementById("result").innerHTML = `✅ 정답입니다!<br>정답: ${q.answer.map(i=>q.options[i]).join(", ")}`;
+    document.getElementById("result").innerHTML = `✅ 정답입니다!<br>정답: ${correctText}`;
   } else {
-    document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${q.answer.map(i=>q.options[i]).join(", ")}`;
+    document.getElementById("result").innerHTML = `❌ 오답입니다.<br>정답: ${correctText}`;
   }
 }
 
@@ -251,7 +260,7 @@ function checkAnswer(q){
 function nextQuestion(){ if(currentIndex<questions.length-1){ currentIndex++; showQuestion(); }}
 function prevQuestion(){ if(currentIndex>0){ currentIndex--; showQuestion(); }}
 
-// 모의고사 결과
+// ✅ 모바일 대응 모의고사 결과
 function showMockResult() {
   clearInterval(timer);
   let score = 0;
@@ -259,30 +268,38 @@ function showMockResult() {
 
   questions.forEach((q, i) => {
     const correctIndex = q.answer;
-    const userIndex = q.userSelected;
+    const userIndex = q.userSelected || [];
     let isCorrect=false;
+
     if(Array.isArray(correctIndex)){
-      const sortedUser = (userIndex||[]).sort().toString();
+      const sortedUser = userIndex.sort().toString();
       const sortedAns = correctIndex.sort().toString();
       isCorrect = sortedUser === sortedAns;
     } else {
-      isCorrect = userIndex && userIndex[0] === correctIndex;
+      isCorrect = userIndex[0] === correctIndex;
     }
     if(isCorrect) score++;
+
+    const correctText = Array.isArray(correctIndex)
+      ? correctIndex.map(x=>q.options[x]).join(", ")
+      : q.options[correctIndex];
 
     html += `
       <div style="margin-bottom:15px; padding:10px; border-bottom:1px solid #ccc;">
         <p><strong>문제 ${i + 1}:</strong> ${q.question}</p>
-        <p>선택: ${(userIndex && userIndex.map(x=>q.options[x]).join(", ")) || "-"} ${isCorrect?"✅":"❌"}</p>
-        <p>정답: ${correctIndex.map(x=>q.options[x]).join(", ")}</p>
-        ${q.explanation ? `<p>해설: ${q.explanation}</p>` : ""}
+        <p>선택: ${(userIndex.map(x=>q.options[x]).join(", ")) || "-"} ${isCorrect?"✅":"❌"}</p>
+        <p>정답: ${correctText}</p>
       </div>
     `;
   });
 
-  html = `<h2>총점: ${Math.round(score / questions.length * 100)}</h2>` + html;
+  const scorePercent = Math.round(score / questions.length * 100);
+  const resultHTML = `<h2>총점: ${scorePercent}점 (${score}/${questions.length})</h2>${html}`;
 
-  document.getElementById("question").innerHTML = html;
+  const questionDiv = document.getElementById("question");
+  questionDiv.innerHTML = "";
+  setTimeout(()=>{ questionDiv.innerHTML = resultHTML; }, 50);
+
   document.getElementById("options").innerHTML = "";
   document.getElementById("prev-btn").style.display = "none";
   document.getElementById("next-btn").style.display = "none";
